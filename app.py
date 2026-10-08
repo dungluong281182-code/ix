@@ -280,4 +280,182 @@ game_html = """
                         x: canvas.width,
                         y: groundY - 36 - (Math.random() * 20),
                         width: 24,
-                        height: 1
+                        height: 18
+                    });
+                } else {
+                    // Xương rồng
+                    obstacles.push({
+                        type: 'cactus',
+                        x: canvas.width,
+                        y: groundY - 24,
+                        width: 18,
+                        height: 24
+                    });
+                }
+            }
+        }
+
+        function update() {
+            if (!gameStarted || gameOver) return;
+
+            frameCount++;
+            score = Math.floor(frameCount / 4);
+            if (score > highScore) highScore = score;
+
+            // Chuyển đổi 4 mùa theo số điểm (Mỗi 150 điểm đổi mùa)
+            let seasonIndex = Math.floor(score / 150) % 4;
+            if (seasonIndex === 0) currentSeason = SEASONS.SPRING;
+            else if (seasonIndex === 1) currentSeason = SEASONS.SUMMER;
+            else if (seasonIndex === 2) currentSeason = SEASONS.AUTUMN;
+            else if (seasonIndex === 3) currentSeason = SEASONS.WINTER;
+
+            if (frameCount % 300 === 0) gameSpeed += 0.25;
+
+            // Vật lý Khủng long
+            dino.vy += dino.gravity;
+            dino.y += dino.vy;
+
+            if (dino.y >= groundY - dino.height) {
+                dino.y = groundY - dino.height;
+                dino.vy = 0;
+                dino.isJumping = false;
+            }
+
+            // Mây & Hạt thời tiết
+            clouds.forEach(c => {
+                c.x -= c.speed;
+                if (c.x < -40) c.x = canvas.width + 10;
+            });
+
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                if (p.y > canvas.height) {
+                    p.y = -5;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            // Sinh & Di chuyển Vật cản
+            spawnObstacle();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                let padding = 4;
+                if (
+                    dino.x + padding < obs.x + obs.width - padding &&
+                    dino.x + dino.width - padding > obs.x + padding &&
+                    dino.y + padding < obs.y + obs.height - padding &&
+                    dino.y + dino.height - padding > obs.y + padding
+                ) {
+                    gameOver = true;
+                }
+
+                if (obs.x < -30) obstacles.splice(i, 1);
+            }
+
+            scoreEl.innerText = String(score).padStart(5, '0');
+            highScoreEl.innerText = String(highScore).padStart(5, '0');
+            seasonNameEl.innerText = currentSeason.name;
+        }
+
+        function draw() {
+            // Background Bầu trời
+            ctx.fillStyle = currentSeason.sky;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Mặt trời Pixel Tươi sáng
+            drawPixelMatrix(sunSprite, 400, 20, 3, "#f59e0b");
+
+            // Mây
+            clouds.forEach(c => {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                ctx.fillRect(c.x, c.y, 24, 8);
+                ctx.fillRect(c.x + 4, c.y - 4, 16, 4);
+            });
+
+            // Hiệu ứng Hạt Thời Tiết
+            ctx.fillStyle = currentSeason.particleColor;
+            particles.forEach(p => {
+                ctx.fillRect(p.x, p.y, p.size, p.size);
+            });
+
+            // Mặt đất Pixel
+            ctx.strokeStyle = currentSeason.ground;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // Chi tiết dưới đất
+            let groundOffset = (frameCount * gameSpeed) % 16;
+            ctx.fillStyle = currentSeason.ground;
+            for (let x = -groundOffset; x < canvas.width; x += 16) {
+                ctx.fillRect(x, groundY + 6, 4, 2);
+                ctx.fillRect(x + 8, groundY + 12, 2, 2);
+            }
+
+            // Vẽ Khủng long
+            let currentDinoSprite = dino.isJumping 
+                ? dinoSprite1 
+                : ((Math.floor(frameCount / 6) % 2 === 0) ? dinoSprite1 : dinoSprite2);
+            
+            drawPixelMatrix(currentDinoSprite, dino.x, dino.y, 3, currentSeason.dino);
+
+            // Vẽ Vật cản
+            obstacles.forEach(obs => {
+                if (obs.type === 'cactus') {
+                    drawPixelMatrix(cactusSprite, obs.x, obs.y, 3, currentSeason.cactus);
+                } else if (obs.type === 'flower') {
+                    // Hoa Độc Mùa Xuân màu tím phát sáng
+                    drawPixelMatrix(flowerSprite, obs.x, obs.y, 3, "#a855f7");
+                } else {
+                    drawPixelMatrix(birdSprite, obs.x, obs.y, 3, "#ef4444");
+                }
+            });
+
+            // Màn hình Bắt đầu & Game Over
+            if (!gameStarted) {
+                ctx.fillStyle = "#1e293b";
+                ctx.font = "12px 'Press Start 2P'";
+                ctx.textAlign = "center";
+                ctx.fillText("PRESS [SPACE] TO START", canvas.width / 2, canvas.height / 2);
+            } else if (gameOver) {
+                ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                ctx.fillStyle = "#ef4444";
+                ctx.font = "14px 'Press Start 2P'";
+                ctx.textAlign = "center";
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
+
+                ctx.fillStyle = "#1e293b";
+                ctx.font = "8px 'Press Start 2P'";
+                ctx.fillText("PRESS [SPACE] OR [R] TO RESTART", canvas.width / 2, canvas.height / 2 + 20);
+            }
+        }
+
+        function gameLoop() {
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>
+"""
+
+components.html(game_html, height=320)
+
+st.sidebar.title("4 SEASONS GAME")
+st.sidebar.markdown("""
+- **Mùa Xuân (SPRING)**: Có **Hoa Độc Tím (Poison Flower)** mọc dưới đất, nhớ nhảy qua!
+- **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
+- **Mùa Thu (AUTUMN)**: Bầu trời cam, lá vàng rơi.
+- **Mùa Đông (WINTER)**: Bầu trời lạnh, tuyết rơi.
+""")
