@@ -1,9 +1,9 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PIXEL ESCAPE 2D", layout="centered")
+st.set_page_config(page_title="PIXEL DINO RUNNER", layout="centered")
 
-# Nhúng Font chữ Pixel (Press Start 2P) cho Streamlit
+# Nhúng Font chữ Pixel Retro
 st.markdown("""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
@@ -21,10 +21,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-st.title("PIXEL ESCAPE 2D")
-st.text("DIEU KHIEN: PHIM MUI TEN (UP, DOWN, LEFT, RIGHT)")
+st.title("DINO RUNNER PIXEL 2D")
+st.text("DIEU KHIEN: PRESS [SPACE] OR [UP] TO JUMP")
 
-# Code HTML5 Canvas + JavaScript Pixel Pure
+# Game HTML5 Canvas + JavaScript Endless Runner
 game_html = """
 <!DOCTYPE html>
 <html>
@@ -55,23 +55,27 @@ game_html = """
             image-rendering: pixelated;
             image-rendering: crisp-edges;
             box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+            outline: none;
         }
         .info {
             margin-top: 15px;
-            font-size: 12px;
+            font-size: 10px;
             color: #ffffff;
             letter-spacing: 1px;
+            display: flex;
+            justify-content: space-between;
+            width: 480px;
         }
-        #score {
-            color: #ff0055;
-        }
+        .score-val { color: #00ff66; }
+        .hi-val { color: #ff0055; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
-        <canvas id="gameCanvas" width="480" height="360"></canvas>
+        <canvas id="gameCanvas" width="480" height="240" tabindex="0"></canvas>
         <div class="info">
-            SURVIVAL TIME: <span id="score">0</span>S
+            <div>HI: <span id="highScore" class="hi-val">00000</span></div>
+            <div>SCORE: <span id="score" class="score-val">00000</span></div>
         </div>
     </div>
 
@@ -79,141 +83,284 @@ game_html = """
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const scoreEl = document.getElementById("score");
+        const highScoreEl = document.getElementById("highScore");
 
-        // Tat blur anh de giu net pixel
         ctx.imageSmoothingEnabled = false;
+        canvas.focus();
+
+        // Tu dong focus vao canvas khi click chuot
+        window.addEventListener("click", () => canvas.focus());
 
         let gameOver = false;
-        let startTime = Date.now();
+        let gameStarted = false;
         let score = 0;
+        let highScore = 0;
         let frameCount = 0;
+        let gameSpeed = 3.5;
 
-        const keys = {};
-        window.addEventListener("keydown", e => keys[e.key] = true);
-        window.addEventListener("keyup", e => keys[e.key] = false);
-
-        // Nhan vat chinh (Kich thuoc 16x16 pixel)
-        const player = {
-            x: 232,
-            y: 172,
-            size: 16,
-            speed: 2.5
+        // Trong luc (Gravity) & Mat dat
+        const groundY = 190;
+        
+        // Khung long Pixel (Dino)
+        const dino = {
+            x: 40,
+            y: groundY - 24,
+            width: 24,
+            height: 24,
+            vy: 0,
+            gravity: 0.6,
+            jumpPower: -10.5,
+            isJumping: false
         };
 
-        // Quai vat Ac Ma (Kich thuoc 16x16 pixel)
-        const monster = {
-            x: 20,
-            y: 20,
-            size: 16,
-            speed: 1.6
-        };
+        // Danh sach vat cản (Xuong rong, Chim)
+        let obstacles = [];
+        let clouds = [
+            { x: 100, y: 30, speed: 0.5 },
+            { x: 300, y: 50, speed: 0.7 },
+            { x: 420, y: 20, speed: 0.4 }
+        ];
 
-        // Ma tran Pixel ve Nhan Vat (1 = diem anh xanh, 0 = trong suot)
-        const playerSprite = [
+        // Sprite 8x8 Ma tran Khung Long
+        const dinoSprite1 = [
+            [0,0,0,1,1,1,1,0],
+            [0,0,0,1,0,1,1,0],
+            [0,0,0,1,1,1,1,0],
+            [0,0,0,1,1,1,0,0],
+            [1,0,1,1,1,1,0,0],
+            [1,1,1,1,1,0,0,0],
+            [0,1,1,1,1,1,0,0],
+            [0,0,1,0,0,1,0,0]
+        ];
+
+        const dinoSprite2 = [
+            [0,0,0,1,1,1,1,0],
+            [0,0,0,1,0,1,1,0],
+            [0,0,0,1,1,1,1,0],
+            [0,0,0,1,1,1,0,0],
+            [1,0,1,1,1,1,0,0],
+            [1,1,1,1,1,0,0,0],
+            [0,1,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0,0]
+        ];
+
+        // Sprite Xuong rong
+        const cactusSprite = [
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,1,1,0],
+            [1,1,1,1,0,1,1,0],
+            [1,1,1,1,1,1,1,0],
             [0,0,1,1,1,1,0,0],
-            [0,1,1,1,1,1,1,0],
-            [1,1,0,1,1,0,1,1],
-            [1,1,1,1,1,1,1,1],
-            [1,1,1,1,1,1,1,1],
-            [0,1,1,1,1,1,1,0],
-            [0,1,0,0,0,0,1,0],
-            [1,0,0,0,0,0,0,1]
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,0,0,0],
+            [0,0,1,1,0,0,0,0]
         ];
 
-        // Ma tran Pixel ve Quai Vat Ac Ma (1 = diem anh do)
-        const monsterSprite = [
-            [1,0,0,0,0,0,0,1],
-            [1,1,0,0,0,0,1,1],
-            [0,1,1,1,1,1,1,0],
-            [1,1,0,1,1,0,1,1],
+        // Sprite Chim Pterodactyl
+        const birdSprite1 = [
+            [0,0,0,1,1,0,0,0],
+            [0,0,1,1,1,1,0,0],
             [1,1,1,1,1,1,1,1],
-            [1,0,1,1,1,1,0,1],
-            [1,0,1,0,0,1,0,1],
-            [0,1,0,0,0,0,1,0]
+            [0,0,0,1,1,1,0,0],
+            [0,0,0,0,1,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0,0]
         ];
 
-        // Hàm vẽ Sprite từng điểm Pixel (8x8 nhân đôi lên 16x16)
-        function drawPixelSprite(sprite, posX, posY, color, animOffset = 0) {
-            const pixelSize = 2; // Moi o ma tran = 2x2 pixel tren canvas
+        function drawPixelMatrix(matrix, posX, posY, pixelSize, color) {
             ctx.fillStyle = color;
             for (let r = 0; r < 8; r++) {
                 for (let c = 0; c < 8; c++) {
-                    if (sprite[r][c] === 1) {
-                        ctx.fillRect(posX + (c * pixelSize), posY + (r * pixelSize) + animOffset, pixelSize, pixelSize);
+                    if (matrix[r][c] === 1) {
+                        ctx.fillRect(posX + (c * pixelSize), posY + (r * pixelSize), pixelSize, pixelSize);
                     }
                 }
             }
         }
 
+        function resetGame() {
+            gameOver = false;
+            gameStarted = true;
+            score = 0;
+            frameCount = 0;
+            gameSpeed = 3.5;
+            dino.y = groundY - 24;
+            dino.vy = 0;
+            dino.isJumping = false;
+            obstacles = [];
+        }
+
+        function jump() {
+            if (!gameStarted) {
+                resetGame();
+                return;
+            }
+            if (gameOver) {
+                resetGame();
+                return;
+            }
+            if (!dino.isJumping) {
+                dino.vy = dino.jumpPower;
+                dino.isJumping = true;
+            }
+        }
+
+        // Bat su kien ban phim
+        window.addEventListener("keydown", (e) => {
+            if (e.code === "Space" || e.code === "ArrowUp") {
+                e.preventDefault();
+                jump();
+            }
+            if (e.code === "KeyR" && gameOver) {
+                resetGame();
+            }
+        });
+
+        function spawnObstacle() {
+            const minGap = 120;
+            const lastObstacle = obstacles[obstacles.length - 1];
+            if (!lastObstacle || (canvas.width - lastObstacle.x) > (minGap + Math.random() * 150)) {
+                const isBird = Math.random() > 0.7 && score > 150;
+                if (isBird) {
+                    obstacles.push({
+                        type: 'bird',
+                        x: canvas.width,
+                        y: groundY - 36 - (Math.random() * 20),
+                        width: 24,
+                        height: 18
+                    });
+                } else {
+                    obstacles.push({
+                        type: 'cactus',
+                        x: canvas.width,
+                        y: groundY - 24,
+                        width: 18,
+                        height: 24
+                    });
+                }
+            }
+        }
+
         function update() {
-            if (gameOver) return;
+            if (!gameStarted || gameOver) return;
 
             frameCount++;
-
-            if (keys["ArrowUp"] && player.y > 0) player.y -= player.speed;
-            if (keys["ArrowDown"] && player.y < canvas.height - player.size) player.y += player.speed;
-            if (keys["ArrowLeft"] && player.x > 0) player.x -= player.speed;
-            if (keys["ArrowRight"] && player.x < canvas.width - player.size) player.x += player.speed;
-
-            // AI Quai vat duoi theo
-            let dx = player.x - monster.x;
-            let dy = player.y - monster.y;
-            let dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist > 0) {
-                monster.x += (dx / dist) * monster.speed;
-                monster.y += (dy / dist) * monster.speed;
+            score = Math.floor(frameCount / 4);
+            if (score > highScore) {
+                highScore = score;
             }
 
-            score = Math.floor((Date.now() - startTime) / 1000);
-            scoreEl.innerText = score;
-
-            // Xử lý va chạm
-            if (
-                player.x < monster.x + monster.size &&
-                player.x + player.size > monster.x &&
-                player.y < monster.y + monster.size &&
-                player.y + player.size > monster.y
-            ) {
-                gameOver = true;
+            // Tang toc do theo thoi gian
+            if (frameCount % 300 === 0) {
+                gameSpeed += 0.3;
             }
+
+            // Vat ly Khung long
+            dino.vy += dino.gravity;
+            dino.y += dino.vy;
+
+            if (dino.y >= groundY - dino.height) {
+                dino.y = groundY - dino.height;
+                dino.vy = 0;
+                dino.isJumping = false;
+            }
+
+            // May troi
+            clouds.forEach(c => {
+                c.x -= c.speed;
+                if (c.x < -40) c.x = canvas.width + 10;
+            });
+
+            // Sinh va Di chuyen Vat can
+            spawnObstacle();
+
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                let obs = obstacles[i];
+                obs.x -= gameSpeed;
+
+                // Xu ly va cham (AABB Collision)
+                let padding = 4;
+                if (
+                    dino.x + padding < obs.x + obs.width - padding &&
+                    dino.x + dino.width - padding > obs.x + padding &&
+                    dino.y + padding < obs.y + obs.height - padding &&
+                    dino.y + dino.height - padding > obs.y + padding
+                ) {
+                    gameOver = true;
+                }
+
+                if (obs.x < -30) {
+                    obstacles.splice(i, 1);
+                }
+            }
+
+            // Cap nhat HUD
+            scoreEl.innerText = String(score).padStart(5, '0');
+            highScoreEl.innerText = String(highScore).padStart(5, '0');
         }
 
         function draw() {
             ctx.fillStyle = "#050508";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Ve luoi nen Pixel Retro
-            ctx.strokeStyle = "#12121c";
-            ctx.lineWidth = 1;
-            for (let x = 0; x < canvas.width; x += 16) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            // Ve May
+            clouds.forEach(c => {
+                ctx.fillStyle = "#222233";
+                ctx.fillRect(c.x, c.y, 24, 8);
+                ctx.fillRect(c.x + 4, c.y - 4, 16, 4);
+            });
+
+            // Ve Duong Mat Dat Pixel
+            ctx.strokeStyle = "#00ff66";
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(0, groundY);
+            ctx.lineTo(canvas.width, groundY);
+            ctx.stroke();
+
+            // Ve Cac Chieu Xoay Mat Dat Pixel
+            let groundOffset = (frameCount * gameSpeed) % 16;
+            ctx.fillStyle = "#005522";
+            for (let x = -groundOffset; x < canvas.width; x += 16) {
+                ctx.fillRect(x, groundY + 6, 4, 2);
+                ctx.fillRect(x + 8, groundY + 12, 2, 2);
             }
-            for (let y = 0; y < canvas.height; y += 16) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-            }
 
-            // Hieu ung nhuc nhich (Bobbing animation) cho phong cach 8-bit
-            let playerAnim = (Math.floor(frameCount / 15) % 2 === 0) ? 0 : -1;
-            let monsterAnim = (Math.floor(frameCount / 10) % 2 === 0) ? 0 : 1;
+            // Ve Khung Long Pixel (Dino)
+            let currentDinoSprite = dino.isJumping 
+                ? dinoSprite1 
+                : ((Math.floor(frameCount / 6) % 2 === 0) ? dinoSprite1 : dinoSprite2);
+            
+            drawPixelMatrix(currentDinoSprite, dino.x, dino.y, 3, "#00ff66");
 
-            // Ve Nhan vat (Xanh la Pixel) & Quai vat (Do Pixel)
-            drawPixelSprite(playerSprite, player.x, player.y, "#00ff66", playerAnim);
-            drawPixelSprite(monsterSprite, monster.x, monster.y, "#ff0055", monsterAnim);
+            // Ve Vat Can
+            obstacles.forEach(obs => {
+                if (obs.type === 'cactus') {
+                    drawPixelMatrix(cactusSprite, obs.x, obs.y, 3, "#00ff66");
+                } else {
+                    drawPixelMatrix(birdSprite1, obs.x, obs.y, 3, "#ff0055");
+                }
+            });
 
-            // Game Over Screen
-            if (gameOver) {
-                ctx.fillStyle = "rgba(5, 5, 8, 0.9)";
+            // Man hinh Bat Dau & Game Over
+            if (!gameStarted) {
+                ctx.fillStyle = "#00ff66";
+                ctx.font = "12px 'Press Start 2P'";
+                ctx.textAlign = "center";
+                ctx.fillText("PRESS [SPACE] TO START", canvas.width / 2, canvas.height / 2);
+            } else if (gameOver) {
+                ctx.fillStyle = "rgba(5, 5, 8, 0.85)";
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
                 ctx.fillStyle = "#ff0055";
-                ctx.font = "16px 'Press Start 2P'";
+                ctx.font = "14px 'Press Start 2P'";
                 ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 15);
+                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
 
                 ctx.fillStyle = "#ffffff";
                 ctx.font = "8px 'Press Start 2P'";
-                ctx.fillText("PRESS F5 TO RESTART", canvas.width / 2, canvas.height / 2 + 20);
+                ctx.fillText("PRESS [SPACE] OR [R] TO RESTART", canvas.width / 2, canvas.height / 2 + 20);
             }
         }
 
@@ -229,9 +376,9 @@ game_html = """
 </html>
 """
 
-components.html(game_html, height=450)
+components.html(game_html, height=320)
 
-st.sidebar.title("BANG DIEU KHAN")
-st.sidebar.text("Nhan vat: Xanh La")
-st.sidebar.text("Quai vat: Do")
-st.sidebar.text("Nhiem vu: Song sot")
+st.sidebar.title("THONG TIN GAME")
+st.sidebar.text("Game: Pixel Dino Runner")
+st.sidebar.text("Nhai: Space / ArrowUp")
+st.sidebar.text("Choi lai: Space / R")
