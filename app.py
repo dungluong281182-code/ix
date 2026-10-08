@@ -90,7 +90,21 @@ game_html = """
         ctx.imageSmoothingEnabled = false;
         canvas.focus();
 
-        window.addEventListener("click", () => canvas.focus());
+        // Tải nhạc nền Unity - TheFatRat
+        const bgMusic = new Audio("https://ia801503.us.archive.org/15/items/TheFatRatUnity/TheFatRat%20-%20Unity.mp3");
+        bgMusic.loop = true;
+        bgMusic.volume = 0.5; // Mức âm lượng 50%
+
+        function playMusic() {
+            if (bgMusic.paused) {
+                bgMusic.play().catch(e => console.log("Audio play error:", e));
+            }
+        }
+
+        window.addEventListener("click", () => {
+            canvas.focus();
+            playMusic();
+        });
 
         let gameOver = false;
         let gameStarted = false;
@@ -130,7 +144,7 @@ game_html = """
             { x: 420, y: 20, speed: 0.4 }
         ];
 
-        // Khởi tạo các hạt thời tiết (Hoa đào, Tuyết, Lá rơi)
+        // Khởi tạo các hạt thời tiết
         for(let i = 0; i < 25; i++) {
             particles.push({
                 x: Math.random() * canvas.width,
@@ -164,7 +178,6 @@ game_html = """
             [0,0,0,1,1,0,0,0]
         ];
 
-        // Sprite Xương rồng
         const cactusSprite = [
             [0,0,1,1,0,0,0,0],
             [0,0,1,1,0,1,1,0],
@@ -176,7 +189,6 @@ game_html = """
             [0,0,1,1,0,0,0,0]
         ];
 
-        // Sprite Hoa Độc (Poison Flower - Mùa Xuân)
         const flowerSprite = [
             [0,1,1,0,0,1,1,0],
             [1,1,1,1,1,1,1,1],
@@ -188,7 +200,6 @@ game_html = """
             [0,0,0,1,1,0,0,0]
         ];
 
-        // Sprite Chim Pterodactyl
         const birdSprite = [
             [0,0,0,1,1,0,0,0],
             [0,0,1,1,1,1,0,0],
@@ -200,7 +211,6 @@ game_html = """
             [0,0,0,0,0,0,0,0]
         ];
 
-        // Sprite Mặt Trời Pixel
         const sunSprite = [
             [0,1,0,1,1,0,1,0],
             [1,0,0,1,1,0,0,1],
@@ -234,9 +244,13 @@ game_html = """
             dino.isJumping = false;
             obstacles = [];
             currentSeason = SEASONS.SPRING;
+            
+            // Tiếp tục phát nhạc nếu đang bị tạm dừng khi thua
+            playMusic();
         }
 
         function jump() {
+            playMusic();
             if (!gameStarted || gameOver) {
                 resetGame();
                 return;
@@ -260,11 +274,10 @@ game_html = """
         function spawnObstacle() {
             const minGap = 130;
             const lastObstacle = obstacles[obstacles.length - 1];
+
             if (!lastObstacle || (canvas.width - lastObstacle.x) > (minGap + Math.random() * 140)) {
-                
                 let rand = Math.random();
 
-                // Nếu đang ở Mùa Xuân, có 40% xuất hiện Hoa Độc
                 if (currentSeason.id === "SPRING" && rand < 0.4) {
                     obstacles.push({
                         type: 'flower',
@@ -274,7 +287,6 @@ game_html = """
                         height: 24
                     });
                 } else if (rand > 0.65 && score > 80) {
-                    // Chim bay
                     obstacles.push({
                         type: 'bird',
                         x: canvas.width,
@@ -283,7 +295,6 @@ game_html = """
                         height: 18
                     });
                 } else {
-                    // Xương rồng
                     obstacles.push({
                         type: 'cactus',
                         x: canvas.width,
@@ -351,6 +362,7 @@ game_html = """
                     dino.y + dino.height - padding > obs.y + padding
                 ) {
                     gameOver = true;
+                    bgMusic.pause(); // Tạm dừng nhạc khi thua
                 }
 
                 if (obs.x < -30) obstacles.splice(i, 1);
@@ -366,7 +378,7 @@ game_html = """
             ctx.fillStyle = currentSeason.sky;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Mặt trời Pixel Tươi sáng
+            // Mặt trời Pixel
             drawPixelMatrix(sunSprite, 400, 20, 3, "#f59e0b");
 
             // Mây
@@ -410,7 +422,6 @@ game_html = """
                 if (obs.type === 'cactus') {
                     drawPixelMatrix(cactusSprite, obs.x, obs.y, 3, currentSeason.cactus);
                 } else if (obs.type === 'flower') {
-                    // Hoa Độc Mùa Xuân màu tím phát sáng
                     drawPixelMatrix(flowerSprite, obs.x, obs.y, 3, "#a855f7");
                 } else {
                     drawPixelMatrix(birdSprite, obs.x, obs.y, 3, "#ef4444");
@@ -454,7 +465,8 @@ components.html(game_html, height=320)
 
 st.sidebar.title("4 SEASONS GAME")
 st.sidebar.markdown("""
-- **Mùa Xuân (SPRING)**: Có **Hoa Độc Tím (Poison Flower)** mọc dưới đất, nhớ nhảy qua!
+- **Nhạc nền**: *TheFatRat - Unity* (Tự động phát khi bấm bắt đầu chơi).
+- **Mùa Xuân (SPRING)**: Có **Hoa Độc Tím (Poison Flower)** mọc dưới đất.
 - **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
 - **Mùa Thu (AUTUMN)**: Bầu trời cam, lá vàng rơi.
 - **Mùa Đông (WINTER)**: Bầu trời lạnh, tuyết rơi.
