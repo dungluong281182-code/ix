@@ -1,7 +1,7 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PIXEL DINO RUNNER", layout="centered")
+st.set_page_config(page_title="PIXEL DINO RUNNER - 4 SEASONS", layout="centered")
 
 # Nhúng Font chữ Pixel Retro
 st.markdown("""
@@ -15,16 +15,16 @@ st.markdown("""
         font-family: 'Press Start 2P', monospace !important;
     }
     .stApp {
-        background-color: #0d0d11;
-        color: #00ff66;
+        background-color: #f0f4f8;
+        color: #2d3748;
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("DINO RUNNER PIXEL 2D")
-st.text("DIEU KHIEN: PRESS [SPACE] OR [UP] TO JUMP")
+st.title("DINO RUNNER: 4 SEASONS")
+st.text("JUMP: [SPACE] / [UP] | RESTART: [SPACE] / [R]")
 
-# Game HTML5 Canvas + JavaScript Endless Runner
+# Game HTML5 Canvas + JavaScript 4 Seasons Runner
 game_html = """
 <!DOCTYPE html>
 <html>
@@ -38,42 +38,43 @@ game_html = """
             font-family: 'Press Start 2P', monospace;
         }
         body {
-            background-color: #0d0d11;
+            background-color: #e2e8f0;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
-            color: #00ff66;
             overflow: hidden;
         }
         #gameContainer {
             text-align: center;
         }
         canvas {
-            border: 4px solid #00ff66;
-            background-color: #050508;
+            border: 4px solid #2d3748;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            box-shadow: 0 0 15px rgba(0, 255, 102, 0.2);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
             outline: none;
         }
         .info {
             margin-top: 15px;
             font-size: 10px;
-            color: #ffffff;
+            color: #2d3748;
             letter-spacing: 1px;
             display: flex;
             justify-content: space-between;
             width: 480px;
+            font-weight: bold;
         }
-        .score-val { color: #00ff66; }
-        .hi-val { color: #ff0055; }
+        .score-val { color: #2b6cb0; }
+        .hi-val { color: #c53030; }
+        .season-val { color: #d69e2e; }
     </style>
 </head>
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas" width="480" height="240" tabindex="0"></canvas>
         <div class="info">
+            <div>SEASON: <span id="seasonName" class="season-val">SPRING</span></div>
             <div>HI: <span id="highScore" class="hi-val">00000</span></div>
             <div>SCORE: <span id="score" class="score-val">00000</span></div>
         </div>
@@ -84,11 +85,11 @@ game_html = """
         const ctx = canvas.getContext("2d");
         const scoreEl = document.getElementById("score");
         const highScoreEl = document.getElementById("highScore");
+        const seasonNameEl = document.getElementById("seasonName");
 
         ctx.imageSmoothingEnabled = false;
         canvas.focus();
 
-        // Tu dong focus vao canvas khi click chuot
         window.addEventListener("click", () => canvas.focus());
 
         let gameOver = false;
@@ -98,10 +99,18 @@ game_html = """
         let frameCount = 0;
         let gameSpeed = 3.5;
 
-        // Trong luc (Gravity) & Mat dat
+        // Bảng màu & thiết lập cho 4 mùa
+        const SEASONS = {
+            SPRING: { id: "SPRING", name: "SPRING", sky: "#bae6fd", ground: "#22c55e", dino: "#15803d", cactus: "#166534", particleColor: "#f472b6" },
+            SUMMER: { id: "SUMMER", name: "SUMMER", sky: "#fef08a", ground: "#eab308", dino: "#15803d", cactus: "#854d0e", particleColor: "#f97316" },
+            AUTUMN: { id: "AUTUMN", name: "AUTUMN", sky: "#ffedd5", ground: "#f97316", dino: "#9a3412", cactus: "#7c2d12", particleColor: "#ea580c" },
+            WINTER: { id: "WINTER", name: "WINTER", sky: "#e2e8f0", ground: "#f8fafc", dino: "#1e293b", cactus: "#475569", particleColor: "#ffffff" }
+        };
+
+        let currentSeason = SEASONS.SPRING;
+
         const groundY = 190;
         
-        // Khung long Pixel (Dino)
         const dino = {
             x: 40,
             y: groundY - 24,
@@ -113,15 +122,26 @@ game_html = """
             isJumping: false
         };
 
-        // Danh sach vat cản (Xuong rong, Chim)
         let obstacles = [];
+        let particles = [];
         let clouds = [
             { x: 100, y: 30, speed: 0.5 },
             { x: 300, y: 50, speed: 0.7 },
             { x: 420, y: 20, speed: 0.4 }
         ];
 
-        // Sprite 8x8 Ma tran Khung Long
+        // Khởi tạo các hạt thời tiết (Hoa đào, Tuyết, Lá rơi)
+        for(let i = 0; i < 25; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2 + 1,
+                speedY: Math.random() * 1 + 0.5,
+                speedX: Math.random() * 1 - 0.5
+            });
+        }
+
+        // Sprite 8x8 Ma trận Pixel
         const dinoSprite1 = [
             [0,0,0,1,1,1,1,0],
             [0,0,0,1,0,1,1,0],
@@ -144,7 +164,7 @@ game_html = """
             [0,0,0,1,1,0,0,0]
         ];
 
-        // Sprite Xuong rong
+        // Sprite Xương rồng
         const cactusSprite = [
             [0,0,1,1,0,0,0,0],
             [0,0,1,1,0,1,1,0],
@@ -156,8 +176,20 @@ game_html = """
             [0,0,1,1,0,0,0,0]
         ];
 
+        // Sprite Hoa Độc (Poison Flower - Mùa Xuân)
+        const flowerSprite = [
+            [0,1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1,1],
+            [1,1,0,1,1,0,1,1],
+            [0,1,1,1,1,1,1,0],
+            [0,0,0,1,1,0,0,0],
+            [0,1,0,1,1,0,1,0],
+            [0,0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0,0]
+        ];
+
         // Sprite Chim Pterodactyl
-        const birdSprite1 = [
+        const birdSprite = [
             [0,0,0,1,1,0,0,0],
             [0,0,1,1,1,1,0,0],
             [1,1,1,1,1,1,1,1],
@@ -166,6 +198,18 @@ game_html = """
             [0,0,0,0,0,0,0,0],
             [0,0,0,0,0,0,0,0],
             [0,0,0,0,0,0,0,0]
+        ];
+
+        // Sprite Mặt Trời Pixel
+        const sunSprite = [
+            [0,1,0,1,1,0,1,0],
+            [1,0,0,1,1,0,0,1],
+            [0,0,1,1,1,1,0,0],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,0,1,1,1,1,0,0],
+            [1,0,0,1,1,0,0,1],
+            [0,1,0,1,1,0,1,0]
         ];
 
         function drawPixelMatrix(matrix, posX, posY, pixelSize, color) {
@@ -189,14 +233,11 @@ game_html = """
             dino.vy = 0;
             dino.isJumping = false;
             obstacles = [];
+            currentSeason = SEASONS.SPRING;
         }
 
         function jump() {
-            if (!gameStarted) {
-                resetGame();
-                return;
-            }
-            if (gameOver) {
+            if (!gameStarted || gameOver) {
                 resetGame();
                 return;
             }
@@ -206,7 +247,6 @@ game_html = """
             }
         }
 
-        // Bat su kien ban phim
         window.addEventListener("keydown", (e) => {
             if (e.code === "Space" || e.code === "ArrowUp") {
                 e.preventDefault();
@@ -218,11 +258,23 @@ game_html = """
         });
 
         function spawnObstacle() {
-            const minGap = 120;
+            const minGap = 130;
             const lastObstacle = obstacles[obstacles.length - 1];
-            if (!lastObstacle || (canvas.width - lastObstacle.x) > (minGap + Math.random() * 150)) {
-                const isBird = Math.random() > 0.7 && score > 150;
-                if (isBird) {
+            if (!lastObstacle || (canvas.width - lastObstacle.x) > (minGap + Math.random() * 140)) {
+                
+                let rand = Math.random();
+
+                // Nếu đang ở Mùa Xuân, có 40% xuất hiện Hoa Độc
+                if (currentSeason.id === "SPRING" && rand < 0.4) {
+                    obstacles.push({
+                        type: 'flower',
+                        x: canvas.width,
+                        y: groundY - 24,
+                        width: 20,
+                        height: 24
+                    });
+                } else if (rand > 0.65 && score > 80) {
+                    // Chim bay
                     obstacles.push({
                         type: 'bird',
                         x: canvas.width,
@@ -231,6 +283,7 @@ game_html = """
                         height: 18
                     });
                 } else {
+                    // Xương rồng
                     obstacles.push({
                         type: 'cactus',
                         x: canvas.width,
@@ -247,16 +300,18 @@ game_html = """
 
             frameCount++;
             score = Math.floor(frameCount / 4);
-            if (score > highScore) {
-                highScore = score;
-            }
+            if (score > highScore) highScore = score;
 
-            // Tang toc do theo thoi gian
-            if (frameCount % 300 === 0) {
-                gameSpeed += 0.3;
-            }
+            // Chuyển đổi 4 mùa theo số điểm (Mỗi 150 điểm đổi mùa)
+            let seasonIndex = Math.floor(score / 150) % 4;
+            if (seasonIndex === 0) currentSeason = SEASONS.SPRING;
+            else if (seasonIndex === 1) currentSeason = SEASONS.SUMMER;
+            else if (seasonIndex === 2) currentSeason = SEASONS.AUTUMN;
+            else if (seasonIndex === 3) currentSeason = SEASONS.WINTER;
 
-            // Vat ly Khung long
+            if (frameCount % 300 === 0) gameSpeed += 0.25;
+
+            // Vật lý Khủng long
             dino.vy += dino.gravity;
             dino.y += dino.vy;
 
@@ -266,20 +321,28 @@ game_html = """
                 dino.isJumping = false;
             }
 
-            // May troi
+            // Mây & Hạt thời tiết
             clouds.forEach(c => {
                 c.x -= c.speed;
                 if (c.x < -40) c.x = canvas.width + 10;
             });
 
-            // Sinh va Di chuyen Vat can
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                if (p.y > canvas.height) {
+                    p.y = -5;
+                    p.x = Math.random() * canvas.width;
+                }
+            });
+
+            // Sinh & Di chuyển Vật cản
             spawnObstacle();
 
             for (let i = obstacles.length - 1; i >= 0; i--) {
                 let obs = obstacles[i];
                 obs.x -= gameSpeed;
 
-                // Xu ly va cham (AABB Collision)
                 let padding = 4;
                 if (
                     dino.x + padding < obs.x + obs.width - padding &&
@@ -290,95 +353,24 @@ game_html = """
                     gameOver = true;
                 }
 
-                if (obs.x < -30) {
-                    obstacles.splice(i, 1);
-                }
+                if (obs.x < -30) obstacles.splice(i, 1);
             }
 
-            // Cap nhat HUD
             scoreEl.innerText = String(score).padStart(5, '0');
             highScoreEl.innerText = String(highScore).padStart(5, '0');
+            seasonNameEl.innerText = currentSeason.name;
         }
 
         function draw() {
-            ctx.fillStyle = "#050508";
+            // Background Bầu trời
+            ctx.fillStyle = currentSeason.sky;
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Ve May
+            // Mặt trời Pixel Tươi sáng
+            drawPixelMatrix(sunSprite, 400, 20, 3, "#f59e0b");
+
+            // Mây
             clouds.forEach(c => {
-                ctx.fillStyle = "#222233";
+                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
                 ctx.fillRect(c.x, c.y, 24, 8);
-                ctx.fillRect(c.x + 4, c.y - 4, 16, 4);
-            });
-
-            // Ve Duong Mat Dat Pixel
-            ctx.strokeStyle = "#00ff66";
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-            ctx.lineTo(canvas.width, groundY);
-            ctx.stroke();
-
-            // Ve Cac Chieu Xoay Mat Dat Pixel
-            let groundOffset = (frameCount * gameSpeed) % 16;
-            ctx.fillStyle = "#005522";
-            for (let x = -groundOffset; x < canvas.width; x += 16) {
-                ctx.fillRect(x, groundY + 6, 4, 2);
-                ctx.fillRect(x + 8, groundY + 12, 2, 2);
-            }
-
-            // Ve Khung Long Pixel (Dino)
-            let currentDinoSprite = dino.isJumping 
-                ? dinoSprite1 
-                : ((Math.floor(frameCount / 6) % 2 === 0) ? dinoSprite1 : dinoSprite2);
-            
-            drawPixelMatrix(currentDinoSprite, dino.x, dino.y, 3, "#00ff66");
-
-            // Ve Vat Can
-            obstacles.forEach(obs => {
-                if (obs.type === 'cactus') {
-                    drawPixelMatrix(cactusSprite, obs.x, obs.y, 3, "#00ff66");
-                } else {
-                    drawPixelMatrix(birdSprite1, obs.x, obs.y, 3, "#ff0055");
-                }
-            });
-
-            // Man hinh Bat Dau & Game Over
-            if (!gameStarted) {
-                ctx.fillStyle = "#00ff66";
-                ctx.font = "12px 'Press Start 2P'";
-                ctx.textAlign = "center";
-                ctx.fillText("PRESS [SPACE] TO START", canvas.width / 2, canvas.height / 2);
-            } else if (gameOver) {
-                ctx.fillStyle = "rgba(5, 5, 8, 0.85)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = "#ff0055";
-                ctx.font = "14px 'Press Start 2P'";
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
-
-                ctx.fillStyle = "#ffffff";
-                ctx.font = "8px 'Press Start 2P'";
-                ctx.fillText("PRESS [SPACE] OR [R] TO RESTART", canvas.width / 2, canvas.height / 2 + 20);
-            }
-        }
-
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
-
-        gameLoop();
-    </script>
-</body>
-</html>
-"""
-
-components.html(game_html, height=320)
-
-st.sidebar.title("THONG TIN GAME")
-st.sidebar.text("Game: Pixel Dino Runner")
-st.sidebar.text("Nhai: Space / ArrowUp")
-st.sidebar.text("Choi lai: Space / R")
+                ctx.fillRect(c.x + 4, c.y - 4, 16,
