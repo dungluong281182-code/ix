@@ -66,8 +66,8 @@ game_html = """
 <canvas id="gameCanvas" width="800" height="250"></canvas>
 
 <div class="btn-container">
-    <button class="game-btn" id="jumpBtn">NHẢY (SPACE)</button>
-    <button class="game-btn duck-btn" id="duckBtn">CÚI (MŨI TÊN XUỐNG)</button>
+    <button class="game-btn" id="jumpBtn">NHAY (SPACE)</button>
+    <button class="game-btn duck-btn" id="duckBtn">CUI (MUI TEN XUONG)</button>
 </div>
 
 <script>
@@ -160,13 +160,14 @@ window.onload = function() {
         });
     }
 
+    // T-Rex chuẩn xác theo mẫu hình siluet (chân ngắn, tay cực nhỏ, đuôi to)
     let dino = {
         x: 50,
         y: 164,
-        width: 32,
+        width: 34,
         height: 36,
         normalHeight: 36,
-        duckHeight: 16,
+        duckHeight: 18,
         vy: 0,
         gravity: 0.75,
         jumpPower: -13.5,
@@ -174,33 +175,54 @@ window.onload = function() {
         isDucking: false,
         animFrame: 0,
         draw() {
+            const p = 3; // 1 ô pixel = 3px
+            const px = this.x;
+            const py = this.y;
+
             ctx.fillStyle = "#2ecc71";
+
             if (this.isDucking && !this.isJumping) {
-                // T-Rex khi cúi: thân nén bẹt thấp xuống sát mặt đất như lò xò
-                ctx.fillRect(this.x, 200 - 16, 42, 16);
-                ctx.fillRect(this.x + 30, 200 - 22, 14, 10);
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(this.x + 38, 200 - 20, 3, 3);
+                // Trạng thái CÚI: Nén ngắn chiều cao sát mặt đất như lò xò
+                ctx.fillRect(px, 200 - 18, 42, 18);
+                ctx.fillRect(px + 28, 200 - 24, 14, 10);
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(px + 32, 200 - 21, 3, 3);
             } else {
-                // Hình dáng chuẩn T-Rex Pixel Art (có đuôi, thân, đầu, tay, chân)
-                ctx.fillRect(this.x, this.y + 10, 8, 6); // Đuôi
-                ctx.fillRect(this.x + 6, this.y + 8, 16, 16); // Thân
-                ctx.fillRect(this.x + 14, this.y, 16, 12); // Đầu & mõm
-                ctx.fillStyle = "#fff";
-                ctx.fillRect(this.x + 24, this.y + 3, 3, 3); // Mắt
-                ctx.fillStyle = "#2ecc71";
-                ctx.fillRect(this.x + 20, this.y + 12, 4, 3); // Tay
+                // ĐẦU & MÕM VUÔNG
+                ctx.fillRect(px + 3*p, py, 6*p, 3*p);
+                ctx.fillRect(px + 2*p, py + 1*p, 1*p, 2*p);
                 
+                // MẮT TRẮNG
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(px + 4*p, py + 1*p, 1*p, 1*p);
+
+                ctx.fillStyle = "#2ecc71";
+                // THÂN & CỔ
+                ctx.fillRect(px + 4*p, py + 3*p, 4*p, 5*p);
+
+                // TAY NHỎ XÍU ĐẶC TRƯNG T-REX
+                ctx.fillStyle = "#1e8449";
+                ctx.fillRect(px + 2*p, py + 4*p, 2*p, 1*p);
+
+                ctx.fillStyle = "#2ecc71";
+                // ĐUÔI TO VỂNH PHÍA SAU
+                ctx.fillRect(px, py + 3*p, 3*p, 2*p);
+                ctx.fillRect(px - 1*p, py + 2*p, 1*p, 2*p);
+                ctx.fillRect(px + 1*p, py + 5*p, 3*p, 2*p);
+                ctx.fillRect(px + 2*p, py + 7*p, 2*p, 2*p);
+
+                // CHÂN NGẮN VỪA VĂN
+                ctx.fillStyle = "#1e8449";
                 if (this.isJumping) {
-                    ctx.fillRect(this.x + 8, this.y + 24, 4, 10);
-                    ctx.fillRect(this.x + 16, this.y + 24, 4, 10);
+                    ctx.fillRect(px + 3*p, py + 8*p, 2*p, 2*p);
+                    ctx.fillRect(px + 6*p, py + 8*p, 2*p, 2*p);
                 } else {
-                    if (Math.floor(this.animFrame / 8) % 2 === 0) {
-                        ctx.fillRect(this.x + 8, this.y + 24, 4, 12);
-                        ctx.fillRect(this.x + 16, this.y + 24, 3, 8);
+                    if (Math.floor(this.animFrame / 6) % 2 === 0) {
+                        ctx.fillRect(px + 3*p, py + 8*p, 2*p, 3*p); // Chân trước
+                        ctx.fillRect(px + 6*p, py + 8*p, 2*p, 1*p); // Chân sau co
                     } else {
-                        ctx.fillRect(this.x + 8, this.y + 24, 3, 8);
-                        ctx.fillRect(this.x + 16, this.y + 24, 4, 12);
+                        ctx.fillRect(px + 3*p, py + 8*p, 2*p, 1*p);
+                        ctx.fillRect(px + 6*p, py + 8*p, 2*p, 3*p);
                     }
                 }
             }
