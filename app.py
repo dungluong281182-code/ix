@@ -76,6 +76,25 @@ window.onload = function() {
         ctx.fillRect(x + 6, y, 8, 2);
     }
 
+    // Vẽ cây mùa thu rực rỡ uốn lượn giống ảnh mẫu
+    function drawPixelAutumnTree(x, y) {
+        // Thân cây uốn lượn
+        ctx.fillStyle = "#5c3a21";
+        ctx.fillRect(x + 16, y + 20, 8, 24);
+        ctx.fillRect(x + 12, y + 28, 8, 10);
+        ctx.fillRect(x + 20, y + 12, 8, 12);
+        // Đống lá rụng dưới gốc
+        ctx.fillStyle = "#f39c12";
+        ctx.fillRect(x + 4, y + 38, 32, 6);
+        // Tán lá vàng cam bồng bềnh
+        ctx.fillStyle = "#f39c12";
+        ctx.fillRect(x + 4, y + 4, 32, 16);
+        ctx.fillStyle = "#e67e22";
+        ctx.fillRect(x, y + 8, 40, 10);
+        ctx.fillStyle = "#f1c40f";
+        ctx.fillRect(x + 8, y, 24, 8);
+    }
+
     function drawDetailedLeaf(x, y, type) {
         if (type === 0) {
             ctx.fillStyle = "#e67e22";
@@ -237,6 +256,10 @@ window.onload = function() {
             ctx.fillStyle = "#f1c40f";
             ctx.beginPath(); ctx.arc(700, 50, 36, 0, Math.PI*2); ctx.fill();
         } else if (currentSeason === 2) {
+            // Hiển thị cây mùa thu phía hậu cảnh và lá rơi
+            drawPixelAutumnTree(150, 156);
+            drawPixelAutumnTree(500, 156);
+
             fallingLeaves.forEach(leaf => {
                 leaf.x += leaf.speedX;
                 leaf.y += leaf.speedY;
