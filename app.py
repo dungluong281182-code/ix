@@ -1,473 +1,438 @@
 import streamlit as st
 import streamlit.components.v1 as components
 
-st.set_page_config(page_title="PIXEL DINO RUNNER - 4 SEASONS", layout="centered")
+st.set_page_config(page_title="4 Seasons Game", layout="centered")
 
-# Nhúng Font chữ Pixel Retro
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-    
-    html, body, [class*="css"] {
-        font-family: 'Press Start 2P', monospace !important;
-    }
-    h1, h2, h3, p, span, div {
-        font-family: 'Press Start 2P', monospace !important;
-    }
-    .stApp {
-        background-color: #f0f4f8;
-        color: #2d3748;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.title("DINO RUNNER: 4 SEASONS")
-st.text("JUMP: [SPACE] / [UP] | RESTART: [SPACE] / [R]")
-
-# Game HTML5 Canvas + JavaScript 4 Seasons Runner
 game_html = """
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <title>4 Seasons Game</title>
     <style>
-        * {
+        * { box-sizing: border-box; }
+        body {
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            font-family: 'Press Start 2P', monospace;
-        }
-        body {
-            background-color: #e2e8f0;
+            background-color: #0f0f0f;
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            overflow: hidden;
-        }
-        #gameContainer {
-            text-align: center;
+            font-family: 'Courier New', Courier, monospace;
         }
         canvas {
-            border: 4px solid #2d3748;
+            border: 4px solid #fff;
             image-rendering: pixelated;
             image-rendering: crisp-edges;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-            outline: none;
+            box-shadow: 0 0 25px rgba(46, 204, 113, 0.4);
+            background: #70c5ce;
+            display: block;
         }
-        .info {
-            margin-top: 15px;
-            font-size: 10px;
-            color: #2d3748;
-            letter-spacing: 1px;
+        .btn-container {
+            margin-top: 12px;
             display: flex;
-            justify-content: space-between;
-            width: 480px;
-            font-weight: bold;
+            gap: 15px;
         }
-        .score-val { color: #2b6cb0; }
-        .hi-val { color: #c53030; }
-        .season-val { color: #d69e2e; }
+        .game-btn {
+            background-color: #2ecc71;
+            color: white;
+            border: 3px solid #fff;
+            padding: 10px 25px;
+            font-size: 18px;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #27ae60;
+            border-radius: 6px;
+        }
+        .game-btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 0 0 #27ae60;
+        }
+        .duck-btn {
+            background-color: #e67e22;
+            box-shadow: 0 4px 0 #ca6f1e;
+        }
+        .duck-btn:active {
+            box-shadow: 0 0 0 #ca6f1e;
+        }
     </style>
 </head>
 <body>
-    <div id="gameContainer">
-        <canvas id="gameCanvas" width="480" height="240" tabindex="0"></canvas>
-        <div class="info">
-            <div>SEASON: <span id="seasonName" class="season-val">SPRING</span></div>
-            <div>HI: <span id="highScore" class="hi-val">00000</span></div>
-            <div>SCORE: <span id="score" class="score-val">00000</span></div>
-        </div>
-    </div>
 
-    <script>
-        const canvas = document.getElementById("gameCanvas");
-        const ctx = canvas.getContext("2d");
-        const scoreEl = document.getElementById("score");
-        const highScoreEl = document.getElementById("highScore");
-        const seasonNameEl = document.getElementById("seasonName");
+<!-- Nhạc nền TheFatRat - Unity -->
+<audio id="bgMusic" loop src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Toby_Fox/Maniacs_In_The_Mailbox/Toby_Fox_-_01_-_Maniacs_In_The_Mailbox.mp3" preload="auto"></audio>
 
-        ctx.imageSmoothingEnabled = false;
-        canvas.focus();
+<canvas id="gameCanvas" width="800" height="250"></canvas>
 
-        // Tải nhạc nền Unity - TheFatRat
-        const bgMusic = new Audio("https://ia801503.us.archive.org/15/items/TheFatRatUnity/TheFatRat%20-%20Unity.mp3");
-        bgMusic.loop = true;
-        bgMusic.volume = 0.5; // Mức âm lượng 50%
+<div class="btn-container">
+    <button class="game-btn" id="jumpBtn">NHẢY (SPACE)</button>
+    <button class="game-btn duck-btn" id="duckBtn">CÚI (DUCK)</button>
+</div>
 
-        function playMusic() {
-            if (bgMusic.paused) {
-                bgMusic.play().catch(e => console.log("Audio play error:", e));
+<script>
+window.onload = function() {
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    const bgMusic = document.getElementById("bgMusic");
+
+    let audioCtx = null;
+    let isMusicPlaying = false;
+
+    function startMusic() {
+        if (!isMusicPlaying) {
+            bgMusic.play().then(() => {
+                isMusicPlaying = true;
+            }).catch(e => console.log("Cần tương tác để phát nhạc"));
+        }
+    }
+
+    function initAudio() {
+        startMusic();
+        if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) {
+                audioCtx = new AudioContext();
             }
         }
-
-        window.addEventListener("click", () => {
-            canvas.focus();
-            playMusic();
-        });
-
-        let gameOver = false;
-        let gameStarted = false;
-        let score = 0;
-        let highScore = 0;
-        let frameCount = 0;
-        let gameSpeed = 3.5;
-
-        // Bảng màu & thiết lập cho 4 mùa
-        const SEASONS = {
-            SPRING: { id: "SPRING", name: "SPRING", sky: "#bae6fd", ground: "#22c55e", dino: "#15803d", cactus: "#166534", particleColor: "#f472b6" },
-            SUMMER: { id: "SUMMER", name: "SUMMER", sky: "#fef08a", ground: "#eab308", dino: "#15803d", cactus: "#854d0e", particleColor: "#f97316" },
-            AUTUMN: { id: "AUTUMN", name: "AUTUMN", sky: "#ffedd5", ground: "#f97316", dino: "#9a3412", cactus: "#7c2d12", particleColor: "#ea580c" },
-            WINTER: { id: "WINTER", name: "WINTER", sky: "#e2e8f0", ground: "#f8fafc", dino: "#1e293b", cactus: "#475569", particleColor: "#ffffff" }
-        };
-
-        let currentSeason = SEASONS.SPRING;
-
-        const groundY = 190;
-        
-        const dino = {
-            x: 40,
-            y: groundY - 24,
-            width: 24,
-            height: 24,
-            vy: 0,
-            gravity: 0.6,
-            jumpPower: -10.5,
-            isJumping: false
-        };
-
-        let obstacles = [];
-        let particles = [];
-        let clouds = [
-            { x: 100, y: 30, speed: 0.5 },
-            { x: 300, y: 50, speed: 0.7 },
-            { x: 420, y: 20, speed: 0.4 }
-        ];
-
-        // Khởi tạo các hạt thời tiết
-        for(let i = 0; i < 25; i++) {
-            particles.push({
-                x: Math.random() * canvas.width,
-                y: Math.random() * canvas.height,
-                size: Math.random() * 2 + 1,
-                speedY: Math.random() * 1 + 0.5,
-                speedX: Math.random() * 1 - 0.5
-            });
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
         }
+    }
 
-        // Sprite 8x8 Ma trận Pixel
-        const dinoSprite1 = [
-            [0,0,0,1,1,1,1,0],
-            [0,0,0,1,0,1,1,0],
-            [0,0,0,1,1,1,1,0],
-            [0,0,0,1,1,1,0,0],
-            [1,0,1,1,1,1,0,0],
-            [1,1,1,1,1,0,0,0],
-            [0,1,1,1,1,1,0,0],
-            [0,0,1,0,0,1,0,0]
-        ];
+    function playSound(type) {
+        initAudio();
+        if (!audioCtx) return;
+        try {
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
 
-        const dinoSprite2 = [
-            [0,0,0,1,1,1,1,0],
-            [0,0,0,1,0,1,1,0],
-            [0,0,0,1,1,1,1,0],
-            [0,0,0,1,1,1,0,0],
-            [1,0,1,1,1,1,0,0],
-            [1,1,1,1,1,0,0,0],
-            [0,1,1,1,1,1,0,0],
-            [0,0,0,1,1,0,0,0]
-        ];
+            if (type === 'jump') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'duck') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.08);
+            } else if (type === 'gameover') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.4);
+                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.4);
+            }
+        } catch(e){}
+    }
 
-        const cactusSprite = [
-            [0,0,1,1,0,0,0,0],
-            [0,0,1,1,0,1,1,0],
-            [1,1,1,1,0,1,1,0],
-            [1,1,1,1,1,1,1,0],
-            [0,0,1,1,1,1,0,0],
-            [0,0,1,1,0,0,0,0],
-            [0,0,1,1,0,0,0,0],
-            [0,0,1,1,0,0,0,0]
-        ];
+    let score = 0;
+    let highScore = 0;
+    let gameSpeed = 5;
+    let isGameOver = false;
+    let currentSeason = 0;
 
-        const flowerSprite = [
-            [0,1,1,0,0,1,1,0],
-            [1,1,1,1,1,1,1,1],
-            [1,1,0,1,1,0,1,1],
-            [0,1,1,1,1,1,1,0],
-            [0,0,0,1,1,0,0,0],
-            [0,1,0,1,1,0,1,0],
-            [0,0,1,1,1,1,0,0],
-            [0,0,0,1,1,0,0,0]
-        ];
+    const seasons = [
+        { name: "MÙA XUÂN (SPRING)", bg: "#70c5ce", ground: "#27ae60", line: "#1e8449" },
+        { name: "MÙA HẠ (SUMMER)", bg: "#f39c12", ground: "#d35400", line: "#ba4a00" },
+        { name: "MÙA THU (AUTUMN)", bg: "#d35400", ground: "#b9770e", line: "#7e5109" },
+        { name: "MÙA ĐÔNG (WINTER)", bg: "#2c3e50", ground: "#bdc3c7", line: "#7f8c8d" }
+    ];
 
-        const birdSprite = [
-            [0,0,0,1,1,0,0,0],
-            [0,0,1,1,1,1,0,0],
-            [1,1,1,1,1,1,1,1],
-            [0,0,0,1,1,1,0,0],
-            [0,0,0,0,1,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0],
-            [0,0,0,0,0,0,0,0]
-        ];
+    let clouds = [];
+    for(let i = 0; i < 4; i++) {
+        clouds.push({
+            x: Math.random() * canvas.width,
+            y: 20 + Math.random() * 45,
+            speed: 0.4 + Math.random() * 0.6,
+            width: 45 + Math.random() * 25
+        });
+    }
 
-        const sunSprite = [
-            [0,1,0,1,1,0,1,0],
-            [1,0,0,1,1,0,0,1],
-            [0,0,1,1,1,1,0,0],
-            [1,1,1,1,1,1,1,1],
-            [1,1,1,1,1,1,1,1],
-            [0,0,1,1,1,1,0,0],
-            [1,0,0,1,1,0,0,1],
-            [0,1,0,1,1,0,1,0]
-        ];
-
-        function drawPixelMatrix(matrix, posX, posY, pixelSize, color) {
-            ctx.fillStyle = color;
-            for (let r = 0; r < 8; r++) {
-                for (let c = 0; c < 8; c++) {
-                    if (matrix[r][c] === 1) {
-                        ctx.fillRect(posX + (c * pixelSize), posY + (r * pixelSize), pixelSize, pixelSize);
+    let dino = {
+        x: 50,
+        y: 165,
+        width: 32,
+        height: 36,
+        normalHeight: 36,
+        duckHeight: 20,
+        vy: 0,
+        gravity: 0.75,
+        jumpPower: -13.5,
+        isJumping: false,
+        isDucking: false,
+        animFrame: 0,
+        draw() {
+            ctx.fillStyle = "#2ecc71";
+            if (this.isDucking && !this.isJumping) {
+                ctx.fillRect(this.x, this.y + 16, 42, 20);
+                ctx.fillRect(this.x + 26, this.y + 8, 16, 12);
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(this.x + 36, this.y + 10, 3, 3);
+            } else {
+                ctx.fillRect(this.x + 6, this.y + 12, 18, 16);
+                ctx.fillRect(this.x + 14, this.y, 16, 14);
+                ctx.fillStyle = "#fff";
+                ctx.fillRect(this.x + 24, this.y + 3, 3, 3);
+                ctx.fillStyle = "#2ecc71";
+                ctx.fillRect(this.x + 20, this.y + 14, 4, 3);
+                
+                if (this.isJumping) {
+                    ctx.fillRect(this.x + 8, this.y + 28, 4, 8);
+                    ctx.fillRect(this.x + 16, this.y + 28, 4, 8);
+                } else {
+                    if (Math.floor(this.animFrame / 8) % 2 === 0) {
+                        ctx.fillRect(this.x + 8, this.y + 28, 4, 8);
+                        ctx.fillRect(this.x + 16, this.y + 28, 3, 6);
+                    } else {
+                        ctx.fillRect(this.x + 8, this.y + 28, 3, 6);
+                        ctx.fillRect(this.x + 16, this.y + 28, 4, 8);
                     }
                 }
             }
+            this.animFrame++;
+        },
+        jump() {
+            if (!this.isJumping) {
+                playSound('jump');
+                this.vy = this.jumpPower;
+                this.isJumping = true;
+                this.isDucking = false;
+                this.height = this.normalHeight;
+            }
+        },
+        duck(active) {
+            if (!this.isJumping) {
+                if (active && !this.isDucking) {
+                    playSound('duck');
+                }
+                this.isDucking = active;
+                if (active) {
+                    this.height = this.duckHeight;
+                    this.y = 165 + (this.normalHeight - this.duckHeight);
+                } else {
+                    this.height = this.normalHeight;
+                    this.y = 165;
+                }
+            }
+        },
+        update() {
+            this.vy += this.gravity;
+            this.y += this.vy;
+            let groundLevel = this.isDucking ? 165 + (this.normalHeight - this.duckHeight) : 165;
+            if (this.y > groundLevel) {
+                this.y = groundLevel;
+                this.vy = 0;
+                this.isJumping = false;
+            }
         }
+    };
 
-        function resetGame() {
-            gameOver = false;
-            gameStarted = true;
-            score = 0;
-            frameCount = 0;
-            gameSpeed = 3.5;
-            dino.y = groundY - 24;
-            dino.vy = 0;
-            dino.isJumping = false;
-            obstacles = [];
-            currentSeason = SEASONS.SPRING;
+    let obstacles = [];
+
+    class Cactus {
+        constructor() {
+            this.width = 22;
+            this.height = 36;
+            this.x = canvas.width;
+            this.y = 200 - this.height;
+            this.type = 'cactus';
+        }
+        draw() {
+            ctx.fillStyle = "#1e8449";
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+            ctx.fillStyle = "#2ecc71";
+            ctx.fillRect(this.x - 4, this.y + 8, 4, 6);
+            ctx.fillRect(this.x + this.width, this.y + 14, 4, 6);
+        }
+        update() {
+            this.x -= gameSpeed;
+        }
+    }
+
+    class LowBird {
+        constructor() {
+            this.width = 34;
+            this.height = 20;
+            this.x = canvas.width;
+            this.y = 158;
+            this.type = 'bird';
+            this.animFrame = 0;
+        }
+        draw() {
+            ctx.fillStyle = "#e74c3c";
+            ctx.fillRect(this.x, this.y + 6, 34, 10);
+            ctx.fillRect(this.x + 8, this.y, 10, 8);
             
-            // Tiếp tục phát nhạc nếu đang bị tạm dừng khi thua
-            playMusic();
+            ctx.fillStyle = "#c0392b";
+            if (Math.floor(this.animFrame / 8) % 2 === 0) {
+                ctx.fillRect(this.x + 12, this.y - 6, 8, 8);
+            } else {
+                ctx.fillRect(this.x + 12, this.y + 14, 8, 8);
+            }
+            this.animFrame++;
         }
-
-        function jump() {
-            playMusic();
-            if (!gameStarted || gameOver) {
-                resetGame();
-                return;
-            }
-            if (!dino.isJumping) {
-                dino.vy = dino.jumpPower;
-                dino.isJumping = true;
-            }
+        update() {
+            this.x -= gameSpeed;
         }
+    }
 
-        window.addEventListener("keydown", (e) => {
-            if (e.code === "Space" || e.code === "ArrowUp") {
-                e.preventDefault();
-                jump();
-            }
-            if (e.code === "KeyR" && gameOver) {
-                resetGame();
-            }
+    function resetGame() {
+        score = 0;
+        gameSpeed = 5;
+        obstacles = [];
+        isGameOver = false;
+        currentSeason = 0;
+        dino.y = 165;
+        dino.height = dino.normalHeight;
+        dino.isDucking = false;
+        startMusic();
+    }
+
+    window.addEventListener("keydown", e => {
+        initAudio();
+        if (e.code === "Space" || e.code === "ArrowUp") {
+            if (isGameOver) resetGame();
+            else dino.jump();
+            e.preventDefault();
+        }
+        if (e.code === "ArrowDown") {
+            if (!isGameOver) dino.duck(true);
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener("keyup", e => {
+        if (e.code === "ArrowDown") {
+            if (!isGameOver) dino.duck(false);
+        }
+    });
+
+    document.getElementById("jumpBtn").addEventListener("click", () => {
+        initAudio();
+        if (isGameOver) resetGame();
+        else dino.jump();
+    });
+
+    const duckBtn = document.getElementById("duckBtn");
+    duckBtn.addEventListener("mousedown", () => { initAudio(); if(!isGameOver) dino.duck(true); });
+    duckBtn.addEventListener("mouseup", () => { if(!isGameOver) dino.duck(false); });
+    duckBtn.addEventListener("touchstart", (e) => { initAudio(); if(!isGameOver) dino.duck(true); e.preventDefault(); });
+    duckBtn.addEventListener("touchend", (e) => { if(!isGameOver) dino.duck(false); e.preventDefault(); });
+
+    let obstacleTimer = 0;
+
+    function gameLoop() {
+        let currentScore = Math.floor(score);
+        currentSeason = Math.floor(currentScore / 50) % seasons.length;
+        let season = seasons[currentSeason];
+
+        ctx.fillStyle = season.bg;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        clouds.forEach(cloud => {
+            cloud.x -= cloud.speed;
+            if (cloud.x < -60) cloud.x = canvas.width + 50;
+            ctx.fillRect(cloud.x, cloud.y, cloud.width, 10);
+            ctx.fillRect(cloud.x + 8, cloud.y - 6, cloud.width - 16, 6);
         });
 
-        function spawnObstacle() {
-            const minGap = 130;
-            const lastObstacle = obstacles[obstacles.length - 1];
+        ctx.fillStyle = season.ground;
+        ctx.fillRect(0, 200, canvas.width, 50);
+        ctx.fillStyle = season.line;
+        ctx.fillRect(0, 200, canvas.width, 4);
 
-            if (!lastObstacle || (canvas.width - lastObstacle.x) > (minGap + Math.random() * 140)) {
-                let rand = Math.random();
+        if (!isGameOver) {
+            dino.update();
+            score += 0.15;
+            gameSpeed = 5 + (score / 60);
 
-                if (currentSeason.id === "SPRING" && rand < 0.4) {
-                    obstacles.push({
-                        type: 'flower',
-                        x: canvas.width,
-                        y: groundY - 24,
-                        width: 20,
-                        height: 24
-                    });
-                } else if (rand > 0.65 && score > 80) {
-                    obstacles.push({
-                        type: 'bird',
-                        x: canvas.width,
-                        y: groundY - 36 - (Math.random() * 20),
-                        width: 24,
-                        height: 18
-                    });
+            obstacleTimer++;
+            if (obstacleTimer > Math.max(35, 80 - (gameSpeed * 2.5)) + Math.random() * 30) {
+                if (score > 40 && Math.random() > 0.45) {
+                    obstacles.push(new LowBird());
                 } else {
-                    obstacles.push({
-                        type: 'cactus',
-                        x: canvas.width,
-                        y: groundY - 24,
-                        width: 18,
-                        height: 24
-                    });
+                    obstacles.push(new Cactus());
                 }
+                obstacleTimer = 0;
             }
         }
 
-        function update() {
-            if (!gameStarted || gameOver) return;
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            obstacles[i].update();
+            obstacles[i].draw();
 
-            frameCount++;
-            score = Math.floor(frameCount / 4);
-            if (score > highScore) highScore = score;
-
-            // Chuyển đổi 4 mùa theo số điểm (Mỗi 150 điểm đổi mùa)
-            let seasonIndex = Math.floor(score / 150) % 4;
-            if (seasonIndex === 0) currentSeason = SEASONS.SPRING;
-            else if (seasonIndex === 1) currentSeason = SEASONS.SUMMER;
-            else if (seasonIndex === 2) currentSeason = SEASONS.AUTUMN;
-            else if (seasonIndex === 3) currentSeason = SEASONS.WINTER;
-
-            if (frameCount % 300 === 0) gameSpeed += 0.25;
-
-            // Vật lý Khủng long
-            dino.vy += dino.gravity;
-            dino.y += dino.vy;
-
-            if (dino.y >= groundY - dino.height) {
-                dino.y = groundY - dino.height;
-                dino.vy = 0;
-                dino.isJumping = false;
+            if (
+                dino.x + 4 < obstacles[i].x + obstacles[i].width - 4 &&
+                dino.x + dino.width - 4 > obstacles[i].x + 4 &&
+                dino.y + 4 < obstacles[i].y + obstacles[i].height &&
+                dino.y + dino.height > obstacles[i].y
+            ) {
+                if (!isGameOver) {
+                    playSound('gameover');
+                }
+                isGameOver = true;
+                if (score > highScore) highScore = Math.floor(score);
             }
 
-            // Mây & Hạt thời tiết
-            clouds.forEach(c => {
-                c.x -= c.speed;
-                if (c.x < -40) c.x = canvas.width + 10;
-            });
-
-            particles.forEach(p => {
-                p.y += p.speedY;
-                p.x += p.speedX;
-                if (p.y > canvas.height) {
-                    p.y = -5;
-                    p.x = Math.random() * canvas.width;
-                }
-            });
-
-            // Sinh & Di chuyển Vật cản
-            spawnObstacle();
-
-            for (let i = obstacles.length - 1; i >= 0; i--) {
-                let obs = obstacles[i];
-                obs.x -= gameSpeed;
-
-                let padding = 4;
-                if (
-                    dino.x + padding < obs.x + obs.width - padding &&
-                    dino.x + dino.width - padding > obs.x + padding &&
-                    dino.y + padding < obs.y + obs.height - padding &&
-                    dino.y + dino.height - padding > obs.y + padding
-                ) {
-                    gameOver = true;
-                    bgMusic.pause(); // Tạm dừng nhạc khi thua
-                }
-
-                if (obs.x < -30) obstacles.splice(i, 1);
+            if (obstacles[i].x < -40) {
+                obstacles.splice(i, 1);
             }
-
-            scoreEl.innerText = String(score).padStart(5, '0');
-            highScoreEl.innerText = String(highScore).padStart(5, '0');
-            seasonNameEl.innerText = currentSeason.name;
         }
 
-        function draw() {
-            // Background Bầu trời
-            ctx.fillStyle = currentSeason.sky;
+        dino.draw();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 15px 'Courier New'";
+        ctx.fillText("ĐIỂM: " + currentScore, 580, 30);
+        ctx.fillText("KỶ LỤC: " + highScore, 580, 52);
+        ctx.fillText(season.name, 20, 30);
+
+        if (isGameOver) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-            // Mặt trời Pixel
-            drawPixelMatrix(sunSprite, 400, 20, 3, "#f59e0b");
-
-            // Mây
-            clouds.forEach(c => {
-                ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                ctx.fillRect(c.x, c.y, 24, 8);
-                ctx.fillRect(c.x + 4, c.y - 4, 16, 4);
-            });
-
-            // Hiệu ứng Hạt Thời Tiết
-            ctx.fillStyle = currentSeason.particleColor;
-            particles.forEach(p => {
-                ctx.fillRect(p.x, p.y, p.size, p.size);
-            });
-
-            // Mặt đất Pixel
-            ctx.strokeStyle = currentSeason.ground;
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-            ctx.lineTo(canvas.width, groundY);
-            ctx.stroke();
-
-            // Chi tiết dưới đất
-            let groundOffset = (frameCount * gameSpeed) % 16;
-            ctx.fillStyle = currentSeason.ground;
-            for (let x = -groundOffset; x < canvas.width; x += 16) {
-                ctx.fillRect(x, groundY + 6, 4, 2);
-                ctx.fillRect(x + 8, groundY + 12, 2, 2);
-            }
-
-            // Vẽ Khủng long
-            let currentDinoSprite = dino.isJumping 
-                ? dinoSprite1 
-                : ((Math.floor(frameCount / 6) % 2 === 0) ? dinoSprite1 : dinoSprite2);
             
-            drawPixelMatrix(currentDinoSprite, dino.x, dino.y, 3, currentSeason.dino);
-
-            // Vẽ Vật cản
-            obstacles.forEach(obs => {
-                if (obs.type === 'cactus') {
-                    drawPixelMatrix(cactusSprite, obs.x, obs.y, 3, currentSeason.cactus);
-                } else if (obs.type === 'flower') {
-                    drawPixelMatrix(flowerSprite, obs.x, obs.y, 3, "#a855f7");
-                } else {
-                    drawPixelMatrix(birdSprite, obs.x, obs.y, 3, "#ef4444");
-                }
-            });
-
-            // Màn hình Bắt đầu & Game Over
-            if (!gameStarted) {
-                ctx.fillStyle = "#1e293b";
-                ctx.font = "12px 'Press Start 2P'";
-                ctx.textAlign = "center";
-                ctx.fillText("PRESS [SPACE] TO START", canvas.width / 2, canvas.height / 2);
-            } else if (gameOver) {
-                ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                ctx.fillStyle = "#ef4444";
-                ctx.font = "14px 'Press Start 2P'";
-                ctx.textAlign = "center";
-                ctx.fillText("GAME OVER", canvas.width / 2, canvas.height / 2 - 10);
-
-                ctx.fillStyle = "#1e293b";
-                ctx.font = "8px 'Press Start 2P'";
-                ctx.fillText("PRESS [SPACE] OR [R] TO RESTART", canvas.width / 2, canvas.height / 2 + 20);
-            }
+            ctx.fillStyle = "#e74c3c";
+            ctx.font = "bold 24px 'Courier New'";
+            ctx.fillText("GAME OVER - VẤP NGÃ RỒI!", 210, 100);
+            
+            ctx.fillStyle = "#fff";
+            ctx.font = "15px 'Courier New'";
+            ctx.fillText("Bấm [SPACEBAR] hoặc nút [NHẢY] để chơi lại", 205, 145);
         }
 
-        function gameLoop() {
-            update();
-            draw();
-            requestAnimationFrame(gameLoop);
-        }
+        requestAnimationFrame(gameLoop);
+    }
 
-        gameLoop();
-    </script>
+    gameLoop();
+};
+</script>
+
 </body>
 </html>
 """
 
-components.html(game_html, height=320)
+components.html(game_html, height=380)
 
 st.sidebar.title("4 SEASONS GAME")
 st.sidebar.markdown("""
 - **Nhạc nền**: *TheFatRat - Unity* (Tự động phát khi bấm bắt đầu chơi).
-- **Mùa Xuân (SPRING)**: Có **Hoa Độc Tím (Poison Flower)** mọc dưới đất.
-- **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
-- **Mùa Thu (AUTUMN)**: Bầu trời cam, lá vàng rơi.
-- **Mùa Đông (WINTER)**: Bầu trời lạnh, tuyết rơi.
+- **Nút điều khiển**: Phím **Spacebar** / **Mũi tên lên** để Nhảy | Phím **Mũi tên xuống** để Cúi.
+- **Mùa Xuân (SPRING)**: Hoa lá xanh tươi mộc mạc.
+- **Mùa Hạ (SUMMER)**: Bầu trời nắng vàng rực rỡ.
+- **Mùa Thu (AUTUMN)**: Bầu trời cam đỏ ấm áp.
+- **Mùa Đông (WINTER)**: Bầu trời đêm lạnh giá.
 """)
