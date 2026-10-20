@@ -11,21 +11,13 @@ game_html = """
 <title>4 Seasons Game</title>
 <style>
 * { box-sizing: border-box; }
-body { margin: 0; padding: 0; background: #0f0f0f; display: flex; flex-direction: column; align-items: center; font-family: Courier, monospace; }
+body { margin: 0; padding: 0; background: #0f0f0f; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; overflow: hidden; font-family: Courier, monospace; }
 canvas { border: 4px solid #fff; image-rendering: pixelated; box-shadow: 0 0 25px rgba(46,204,113,0.4); background: #f9d5e5; display: block; }
-.btn-container { margin-top: 12px; display: flex; gap: 15px; }
-.game-btn { background-color: #2ecc71; color: white; border: 3px solid #fff; padding: 10px 25px; font-size: 18px; font-weight: bold; font-family: Courier, monospace; cursor: pointer; border-radius: 6px; }
-.game-btn:active { transform: translateY(4px); }
-.duck-btn { background-color: #e67e22; }
 </style>
 </head>
 <body>
 <audio id="bgMusic" loop src="https://archive.org/download/gdps-2.2-song-621134/621134.mp3" preload="auto"></audio>
 <canvas id="gameCanvas" width="800" height="250"></canvas>
-<div class="btn-container">
-<button class="game-btn" id="jumpBtn">NHAY (SPACE)</button>
-<button class="game-btn duck-btn" id="duckBtn">CUI (MUI TEN XUONG)</button>
-</div>
 <script>
 window.onload = function() {
     const canvas = document.getElementById("gameCanvas");
@@ -46,7 +38,18 @@ window.onload = function() {
 
     let springFlowers = [], fallingLeaves = [], snowFlakes = [], sunAngle = 0, clouds = [];
     for(let i=0; i<8; i++) springFlowers.push({ x: Math.random()*canvas.width, y: 192+Math.random()*6, color: Math.random()>0.5?"#e74c3c":"#ffffff" });
-    for(let i=0; i<12; i++) fallingLeaves.push({ x: Math.random()*canvas.width, y: Math.random()*180, speedY: 0.8+Math.random()*1.2, speedX: -0.5-Math.random()*0.8, size: 4+Math.random()*4 });
+    
+    // Khởi tạo các chiếc lá mùa thu chi tiết giống hình mẫu
+    for(let i=0; i<10; i++) {
+        fallingLeaves.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * 180,
+            speedY: 0.6 + Math.random() * 1.0,
+            speedX: -0.4 - Math.random() * 0.6,
+            type: Math.floor(Math.random() * 3)
+        });
+    }
+
     for(let i=0; i<30; i++) snowFlakes.push({ x: Math.random()*canvas.width, y: Math.random()*200, speedY: 0.8+Math.random()*1.4, size: 2+Math.random()*3.5 });
     for(let i=0; i<4; i++) clouds.push({ x: Math.random()*canvas.width, y: 20+Math.random()*50, speed: 0.3+Math.random()*0.5 });
 
@@ -72,6 +75,35 @@ window.onload = function() {
         ctx.fillRect(x + 2, y + 10, 16, 2);
         ctx.fillRect(x, y + 4, 20, 2);
         ctx.fillRect(x + 6, y, 8, 2);
+    }
+
+    // Vẽ chiếc lá mùa thu nghệ thuật chuẩn pixel art theo mẫu
+    function drawDetailedLeaf(x, y, type) {
+        if (type === 0) {
+            // Lá phong nhiều thùy
+            ctx.fillStyle = "#e67e22";
+            ctx.fillRect(x+4, y, 4, 12);
+            ctx.fillRect(x, y+4, 12, 4);
+            ctx.fillStyle = "#d35400";
+            ctx.fillRect(x+2, y+10, 2, 4);
+        } else if (type === 1) {
+            // Lá dài gân giữa
+            ctx.fillStyle = "#f39c12";
+            ctx.fillRect(x+2, y, 6, 14);
+            ctx.fillStyle = "#c0392b";
+            ctx.fillRect(x+4, y+2, 2, 10);
+            ctx.fillStyle = "#e67e22";
+            ctx.fillRect(x, y+4, 10, 2);
+            ctx.fillRect(x, y+8, 10, 2);
+        } else {
+            // Lá bầu dục răng cưa
+            ctx.fillStyle = "#d35400";
+            ctx.fillRect(x+2, y, 6, 12);
+            ctx.fillStyle = "#f1c40f";
+            ctx.fillRect(x+4, y+2, 2, 8);
+            ctx.fillStyle = "#7e5109";
+            ctx.fillRect(x+4, y+12, 2, 3);
+        }
     }
 
     let dino = {
@@ -188,14 +220,10 @@ window.onload = function() {
 
     window.addEventListener("keydown", e => {
         initAudio();
-        if (e.code === "Space") { if(isGameOver) resetGame(); else dino.jump(); e.preventDefault(); }
+        if (e.code === "Space" || e.code === "ArrowUp") { if(isGameOver) resetGame(); else dino.jump(); e.preventDefault(); }
         if (e.code === "ArrowDown") { if(!isGameOver) dino.duck(true); e.preventDefault(); }
     });
     window.addEventListener("keyup", e => { if (e.code === "ArrowDown") if(!isGameOver) dino.duck(false); });
-    document.getElementById("jumpBtn").addEventListener("click", () => { initAudio(); if(isGameOver) resetGame(); else dino.jump(); });
-    const duckBtn = document.getElementById("duckBtn");
-    duckBtn.addEventListener("mousedown", () => { initAudio(); if(!isGameOver) dino.duck(true); });
-    duckBtn.addEventListener("mouseup", () => { if(!isGameOver) dino.duck(false); });
 
     let obstacleTimer = 0;
     function gameLoop() {
@@ -214,11 +242,12 @@ window.onload = function() {
             ctx.fillStyle = "#f1c40f";
             ctx.beginPath(); ctx.arc(700, 50, 36, 0, Math.PI*2); ctx.fill();
         } else if (currentSeason === 2) {
-            ctx.fillStyle = "#e67e22";
+            // Hiệu ứng lá thu rơi chuẩn mẫu pixel art
             fallingLeaves.forEach(leaf => {
-                leaf.x += leaf.speedX; leaf.y += leaf.speedY;
+                leaf.x += leaf.speedX;
+                leaf.y += leaf.speedY;
                 if(leaf.y > 200) { leaf.y = 0; leaf.x = Math.random()*canvas.width; }
-                ctx.fillRect(leaf.x, leaf.y, leaf.size, leaf.size);
+                drawDetailedLeaf(leaf.x, leaf.y, leaf.type);
             });
         } else if (currentSeason === 3) {
             ctx.fillStyle = "#e2f1f8";
@@ -279,30 +308,3 @@ window.onload = function() {
         if (isGameOver) {
             ctx.fillStyle = "rgba(0,0,0,0.8)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#e74c3c";
-            ctx.font = "bold 24px Courier";
-            ctx.fillText("GAME OVER - VAP NGA ROI!", 210, 100);
-            ctx.fillStyle = "#fff";
-            ctx.font = "15px Courier";
-            ctx.fillText("Bam [SPACEBAR] hoac nut [NHAY] de choi lai", 205, 145);
-        }
-        requestAnimationFrame(gameLoop);
-    }
-    gameLoop();
-};
-</script>
-</body>
-</html>
-"""
-
-components.html(game_html, height=380)
-
-st.sidebar.title("4 SEASONS GAME")
-st.sidebar.markdown("""
-- **Nhạc nền**: TheFatRat - Unity (Tự động phát)[cite: 10].
-- **Điều khiển**: [Spacebar] để Nhảy | Phím [Mũi tên xuống] để Cúi[cite: 10].
-- **Mùa Xuân**: Bầu trời hồng nhạt, hoa & chim[cite: 10].
-- **Mùa Hạ**: Bầu trời cam, mặt trời lớn[cite: 10].
-- **Mùa Thu**: Lá thu rơi[cite: 10].
-- **Mùa Đông**: Bầu trời xanh đêm đậm, mặt trăng lưỡi liềm & cây thông tuyết[cite: 16].
-""")
