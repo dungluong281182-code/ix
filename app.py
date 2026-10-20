@@ -160,14 +160,13 @@ window.onload = function() {
         });
     }
 
-    // T-Rex chuẩn xác theo mẫu hình siluet (chân ngắn, tay cực nhỏ, đuôi to)
     let dino = {
         x: 50,
-        y: 164,
-        width: 34,
-        height: 36,
-        normalHeight: 36,
-        duckHeight: 18,
+        y: 160,
+        width: 33,
+        height: 40,
+        normalHeight: 40,
+        duckHeight: 22,
         vy: 0,
         gravity: 0.75,
         jumpPower: -13.5,
@@ -175,57 +174,60 @@ window.onload = function() {
         isDucking: false,
         animFrame: 0,
         draw() {
-            const p = 3; // 1 ô pixel = 3px
+            const p = 3; 
             const px = this.x;
-            const py = this.y;
+
+            ctx.save();
+            if (this.isDucking && !this.isJumping) {
+                // Co giãn chiều cao theo tỷ lệ (scale dọc xuống còn 55%), giữ nguyên vẹn hình dáng T-Rex
+                ctx.translate(px, 200);
+                ctx.scale(1, 0.55);
+                ctx.translate(0, -40);
+            } else {
+                ctx.translate(px, this.y);
+            }
 
             ctx.fillStyle = "#2ecc71";
 
-            if (this.isDucking && !this.isJumping) {
-                // Trạng thái CÚI: Nén ngắn chiều cao sát mặt đất như lò xò
-                ctx.fillRect(px, 200 - 18, 42, 18);
-                ctx.fillRect(px + 28, 200 - 24, 14, 10);
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(px + 32, 200 - 21, 3, 3);
+            // 1. Đầu & Mõm vuông
+            ctx.fillRect(3*p, 0, 6*p, 3*p);
+            ctx.fillRect(2*p, 1*p, 1*p, 2*p);
+            
+            // Mắt trắng
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(4*p, 1*p, 1*p, 1*p);
+
+            ctx.fillStyle = "#2ecc71";
+            // 2. Thân & Cổ
+            ctx.fillRect(4*p, 3*p, 4*p, 5*p);
+
+            // 3. Tay nhỏ xinh đặc trưng T-Rex
+            ctx.fillStyle = "#1e8449";
+            ctx.fillRect(2*p, 4*p, 2*p, 1*p);
+
+            ctx.fillStyle = "#2ecc71";
+            // 4. Đuôi to vểnh phía sau
+            ctx.fillRect(0, 3*p, 3*p, 2*p);
+            ctx.fillRect(-1*p, 2*p, 1*p, 2*p);
+            ctx.fillRect(1*p, 5*p, 3*p, 2*p);
+            ctx.fillRect(2*p, 7*p, 2*p, 2*p);
+
+            // 5. Chân chạy
+            ctx.fillStyle = "#1e8449";
+            if (this.isJumping) {
+                ctx.fillRect(3*p, 8*p, 2*p, 2*p);
+                ctx.fillRect(6*p, 8*p, 2*p, 2*p);
             } else {
-                // ĐẦU & MÕM VUÔNG
-                ctx.fillRect(px + 3*p, py, 6*p, 3*p);
-                ctx.fillRect(px + 2*p, py + 1*p, 1*p, 2*p);
-                
-                // MẮT TRẮNG
-                ctx.fillStyle = "#ffffff";
-                ctx.fillRect(px + 4*p, py + 1*p, 1*p, 1*p);
-
-                ctx.fillStyle = "#2ecc71";
-                // THÂN & CỔ
-                ctx.fillRect(px + 4*p, py + 3*p, 4*p, 5*p);
-
-                // TAY NHỎ XÍU ĐẶC TRƯNG T-REX
-                ctx.fillStyle = "#1e8449";
-                ctx.fillRect(px + 2*p, py + 4*p, 2*p, 1*p);
-
-                ctx.fillStyle = "#2ecc71";
-                // ĐUÔI TO VỂNH PHÍA SAU
-                ctx.fillRect(px, py + 3*p, 3*p, 2*p);
-                ctx.fillRect(px - 1*p, py + 2*p, 1*p, 2*p);
-                ctx.fillRect(px + 1*p, py + 5*p, 3*p, 2*p);
-                ctx.fillRect(px + 2*p, py + 7*p, 2*p, 2*p);
-
-                // CHÂN NGẮN VỪA VĂN
-                ctx.fillStyle = "#1e8449";
-                if (this.isJumping) {
-                    ctx.fillRect(px + 3*p, py + 8*p, 2*p, 2*p);
-                    ctx.fillRect(px + 6*p, py + 8*p, 2*p, 2*p);
+                if (Math.floor(this.animFrame / 6) % 2 === 0) {
+                    ctx.fillRect(3*p, 8*p, 2*p, 3*p);
+                    ctx.fillRect(6*p, 8*p, 2*p, 1*p);
                 } else {
-                    if (Math.floor(this.animFrame / 6) % 2 === 0) {
-                        ctx.fillRect(px + 3*p, py + 8*p, 2*p, 3*p); // Chân trước
-                        ctx.fillRect(px + 6*p, py + 8*p, 2*p, 1*p); // Chân sau co
-                    } else {
-                        ctx.fillRect(px + 3*p, py + 8*p, 2*p, 1*p);
-                        ctx.fillRect(px + 6*p, py + 8*p, 2*p, 3*p);
-                    }
+                    ctx.fillRect(3*p, 8*p, 2*p, 1*p);
+                    ctx.fillRect(6*p, 8*p, 2*p, 3*p);
                 }
             }
+
+            ctx.restore();
             this.animFrame++;
         },
         jump() {
@@ -248,14 +250,14 @@ window.onload = function() {
                     this.y = 200 - this.duckHeight;
                 } else {
                     this.height = this.normalHeight;
-                    this.y = 164;
+                    this.y = 160;
                 }
             }
         },
         update() {
             this.vy += this.gravity;
             this.y += this.vy;
-            let groundLevel = this.isDucking ? (200 - this.duckHeight) : 164;
+            let groundLevel = this.isDucking ? (200 - this.duckHeight) : 160;
             if (this.y > groundLevel) {
                 this.y = groundLevel;
                 this.vy = 0;
@@ -319,7 +321,7 @@ window.onload = function() {
         obstacles = [];
         isGameOver = false;
         currentSeason = 0;
-        dino.y = 164;
+        dino.y = 160;
         dino.height = dino.normalHeight;
         dino.isDucking = false;
         ensureMusic();
@@ -455,7 +457,7 @@ components.html(game_html, height=380)
 st.sidebar.title("4 SEASONS GAME")
 st.sidebar.markdown("""
 - **Nhạc nền**: TheFatRat - Unity (Tự động phát khi khởi chạy).
-- **Nút điều khiển**: Phím Spacebar / Mũi tên lên để Nhảy | Phím Mũi tên xuống để Cúi / Nén chiều cao.
+- **Nút điều khiển**: Phím Spacebar / Mũi tên lên để Nhảy | Phím Mũi tên xuống để Cúi / Thu nhỏ lùn xuống.
 - **Mùa Xuân (SPRING)**: Khung cảnh xanh tươi.
 - **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
 - **Mùa Thu (AUTUMN)**: Bầu trời cam đỏ ấm áp.
