@@ -437,4 +437,122 @@ window.onload = function() {
                 let angle = sunAngle + (i * Math.PI / 4);
                 let x1 = 700 + Math.cos(angle) * 42;
                 let y1 = 50 + Math.sin(angle) * 42;
-                let x2 = 70
+                let x2 = 700 + Math.cos(angle) * 54;
+                let y2 = 50 + Math.sin(angle) * 54;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        } else if (currentSeason === 2) {
+            ctx.fillStyle = "#e67e22";
+            fallingLeaves.forEach(leaf => {
+                leaf.x += leaf.speedX;
+                leaf.y += leaf.speedY;
+                if (leaf.y > 200) { leaf.y = 0; leaf.x = Math.random() * canvas.width; }
+                if (leaf.x < 0) leaf.x = canvas.width;
+                ctx.fillRect(leaf.x, leaf.y, leaf.size, leaf.size);
+            });
+        } else if (currentSeason === 3) {
+            ctx.fillStyle = "#ecf0f1";
+            snowFlakes.forEach(flake => {
+                flake.y += flake.speedY;
+                if (flake.y > 200) { flake.y = 0; flake.x = Math.random() * canvas.width; }
+                ctx.fillRect(flake.x, flake.y, flake.size, flake.size);
+            });
+        }
+
+        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+        clouds.forEach(cloud => {
+            cloud.x -= cloud.speed;
+            if (cloud.x < -60) cloud.x = canvas.width + 50;
+            ctx.fillRect(cloud.x, cloud.y, cloud.width, 10);
+            ctx.fillRect(cloud.x + 8, cloud.y - 6, cloud.width - 16, 6);
+        });
+
+        ctx.fillStyle = season.ground;
+        ctx.fillRect(0, 200, canvas.width, 50);
+        ctx.fillStyle = season.line;
+        ctx.fillRect(0, 200, canvas.width, 4);
+
+        if (!isGameOver) {
+            dino.update();
+            score += 0.15;
+            gameSpeed = 5 + (score / 60);
+
+            obstacleTimer++;
+            if (obstacleTimer > Math.max(38, 85 - (gameSpeed * 2.5)) + Math.random() * 35) {
+                if (score > 40 && Math.random() > 0.45) {
+                    obstacles.push(new LowBird());
+                } else {
+                    obstacles.push(new Cactus());
+                }
+                obstacleTimer = 0;
+            }
+        }
+
+        for (let i = obstacles.length - 1; i >= 0; i--) {
+            obstacles[i].update();
+            obstacles[i].draw();
+
+            if (
+                dino.x + 2 < obstacles[i].x + obstacles[i].width - 2 &&
+                dino.x + dino.width - 2 > obstacles[i].x + 2 &&
+                dino.y + 2 < obstacles[i].y + obstacles[i].height &&
+                dino.y + dino.height > obstacles[i].y
+            ) {
+                if (!isGameOver) {
+                    playSound('gameover');
+                }
+                isGameOver = true;
+                if (score > highScore) highScore = Math.floor(score);
+            }
+
+            if (obstacles[i].x < -70) {
+                obstacles.splice(i, 1);
+            }
+        }
+
+        dino.draw();
+
+        ctx.fillStyle = "#fff";
+        ctx.font = "bold 15px 'Courier New'";
+        ctx.fillText("DIEM: " + currentScore, 580, 30);
+        ctx.fillText("KY LUC: " + highScore, 580, 52);
+        ctx.fillText(season.name, 20, 30);
+
+        if (isGameOver) {
+            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = "#e74c3c";
+            ctx.font = "bold 24px 'Courier New'";
+            ctx.fillText("GAME OVER - VAP NGA ROI!", 210, 100);
+            
+            ctx.fillStyle = "#fff";
+            ctx.font = "15px 'Courier New'";
+            ctx.fillText("Bam [SPACEBAR] hoac nut [NHAY] de choi lai", 205, 145);
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    gameLoop();
+};
+</script>
+
+</body>
+</html>
+"""
+
+components.html(game_html, height=380)
+
+st.sidebar.title("4 SEASONS GAME")
+st.sidebar.markdown("""
+- **Nhạc nền**: TheFatRat - Unity (Tự động phát khi khởi chạy).
+- **Điều khiển**: Phím Spacebar / Mũi tên lên để Nhảy | Phím Mũi tên xuống để Cúi / Thu nhỏ lùn xuống.
+- **Mùa Xuân (SPRING)**: Hoa nở rực rỡ và chim chóc.
+- **Mùa Hạ (SUMMER)**: Ông mặt trời to rực rỡ.
+- **Mùa Thu (AUTUMN)**: Lá thu bay rơi xuống đất.
+- **Mùa Đông (WINTER)**: Bầu trời âm u tối mịt và tuyết rơi trắng xóa.
+""")
