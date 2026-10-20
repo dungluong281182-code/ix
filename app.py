@@ -144,23 +144,41 @@ window.onload = function() {
     let currentSeason = 0;
 
     const seasons = [
-        { name: "MUA XUAN (SPRING)", bg: "#70c5ce", ground: "#27ae60", line: "#1e8449" },
-        { name: "MUA HA (SUMMER)", bg: "#f39c12", ground: "#d35400", line: "#ba4a00" },
-        { name: "MUA THU (AUTUMN)", bg: "#d35400", ground: "#b9770e", line: "#7e5109" },
-        { name: "MUA DONG (WINTER)", bg: "#2c3e50", ground: "#bdc3c7", line: "#7f8c8d" }
+        { name: "MUA XUAN (SPRING)", bg: "#70c5ce", ground: "#27ae60", line: "#1e8449", cactusColor: "#1e8449" },
+        { name: "MUA HA (SUMMER)", bg: "#f39c12", ground: "#d35400", line: "#ba4a00", cactusColor: "#27ae60" },
+        { name: "MUA THU (AUTUMN)", bg: "#d35400", ground: "#b9770e", line: "#7e5109", cactusColor: "#1e8449" },
+        { name: "MUA DONG (WINTER)", bg: "#1a252f", ground: "#7f8c8d", line: "#34495e", cactusColor: "#16a085" }
     ];
 
-    let clouds = [];
-    for(let i = 0; i < 4; i++) {
-        clouds.push({
+    // Các phần tử thời tiết / môi trường riêng biệt cho từng mùa
+    let springFlowers = [];
+    for(let i=0; i<8; i++) {
+        springFlowers.push({ x: Math.random() * canvas.width, y: 192 + Math.random() * 6, color: Math.random() > 0.5 ? "#e74c3c" : "#f1c40f" });
+    }
+
+    let fallingLeaves = [];
+    for(let i=0; i<12; i++) {
+        fallingLeaves.push({
             x: Math.random() * canvas.width,
-            y: 20 + Math.random() * 45,
-            speed: 0.4 + Math.random() * 0.6,
-            width: 45 + Math.random() * 25
+            y: Math.random() * 180,
+            speedY: 0.8 + Math.random() * 1.2,
+            speedX: -0.5 - Math.random() * 0.8,
+            size: 4 + Math.random() * 4
         });
     }
 
-    // T-Rex tái hiện 100% chuẩn hình mẫu
+    let snowFlakes = [];
+    for(let i=0; i<25; i++) {
+        snowFlakes.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * 200,
+            speedY: 1 + Math.random() * 1.5,
+            size: 2 + Math.random() * 3
+        });
+    }
+
+    let sunAngle = 0;
+
     let dino = {
         x: 50,
         y: 156,
@@ -175,12 +193,11 @@ window.onload = function() {
         isDucking: false,
         animFrame: 0,
         draw() {
-            const p = 2.5; // Kích thước 1 pixel unit
+            const p = 2.5;
             const px = this.x;
 
             ctx.save();
             if (this.isDucking && !this.isJumping) {
-                // Co bẹt chiều cao lùn tịt xuống sát mặt đất y = 200
                 ctx.translate(px, 200);
                 ctx.scale(1.1, 0.5);
                 ctx.translate(0, -17.5 * p);
@@ -188,46 +205,38 @@ window.onload = function() {
                 ctx.translate(px, this.y);
             }
 
-            ctx.fillStyle = "#2ecc71"; // Màu xanh lá pixel
-
-            // Ma trận vẽ T-Rex chuẩn từng ô Pixel:
-            // 1. Đầu & Mõm vuông
+            ctx.fillStyle = "#2ecc71";
             ctx.fillRect(7*p, 0, 7*p, 2*p);
             ctx.fillRect(7*p, 2*p, 8*p, 2*p);
             ctx.fillRect(7*p, 4*p, 6*p, 1*p);
             
-            // Mắt trắng
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(8*p, 1*p, 1.5*p, 1.5*p);
 
             ctx.fillStyle = "#2ecc71";
-            // 2. Cổ & Thân
             ctx.fillRect(7*p, 5*p, 4*p, 4*p);
             ctx.fillRect(5*p, 7*p, 5*p, 5*p);
             ctx.fillRect(3*p, 9*p, 6*p, 4*p);
 
-            // 3. Đôi TAY NHỎ nhô ra phía trước
             ctx.fillRect(11*p, 6*p, 3*p, 1*p);
             ctx.fillRect(11*p, 7*p, 1*p, 1.5*p);
 
-            // 4. Đuôi vểnh dài phía sau
             ctx.fillRect(0, 4*p, 1*p, 4*p);
             ctx.fillRect(1*p, 6*p, 1*p, 4*p);
             ctx.fillRect(2*p, 8*p, 1*p, 3*p);
 
-            // 5. Chân đứng vừa vặn chạm đất y = 200
             if (this.isJumping) {
                 ctx.fillRect(4*p, 13*p, 2*p, 2*p);
                 ctx.fillRect(7*p, 13*p, 2*p, 2*p);
             } else {
                 if (Math.floor(this.animFrame / 6) % 2 === 0) {
-                    ctx.fillRect(4*p, 13*p, 2*p, 4.5*p); // Chân trái duỗi chạm đất
-                    ctx.fillRect(7*p, 13*p, 2*p, 2*p);   // Chân phải co lên
+                    ctx.fillRect(4*p, 13*p, 2*p, 4.5*p);
+                    ctx.fillRect(7*p, 13*p, 2*p, 2*p);
                     ctx.fillRect(8*p, 14*p, 2*p, 1*p);
                 } else {
-                    ctx.fillRect(4*p, 13*p, 2*p, 2*p);   // Chân trái co
+                    ctx.fillRect(4*p, 13*p, 2*p, 2*p);
                     ctx.fillRect(3*p, 14*p, 2*p, 1*p);
-                    ctx.fillRect(7*p, 13*p, 2*p, 4.5*p); // Chân phải duỗi chạm đất
+                    ctx.fillRect(7*p, 13*p, 2*p, 4.5*p);
                 }
             }
 
@@ -274,18 +283,44 @@ window.onload = function() {
 
     class Cactus {
         constructor() {
-            this.width = 22;
-            this.height = 36;
+            this.clusterType = Math.floor(Math.random() * 3);
+            if (this.clusterType === 0) {
+                this.width = 24;
+                this.height = 42;
+            } else if (this.clusterType === 1) {
+                this.width = 44;
+                this.height = 45;
+            } else {
+                this.width = 62;
+                this.height = 48;
+            }
             this.x = canvas.width;
             this.y = 200 - this.height;
             this.type = 'cactus';
         }
+        
+        drawSingleCactus(ox, oy, h, color) {
+            const p = 2;
+            ctx.fillStyle = color;
+            ctx.fillRect(ox + 4*p, oy, 4*p, h);
+            ctx.fillRect(ox, oy + Math.floor(h*0.3), 2*p, Math.floor(h*0.35));
+            ctx.fillRect(ox, oy + Math.floor(h*0.65), 5*p, 2*p);
+            ctx.fillRect(ox + 10*p, oy + Math.floor(h*0.25), 2*p, Math.floor(h*0.35));
+            ctx.fillRect(ox + 7*p, oy + Math.floor(h*0.55), 5*p, 2*p);
+        }
+
         draw() {
-            ctx.fillStyle = "#1e8449";
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-            ctx.fillStyle = "#2ecc71";
-            ctx.fillRect(this.x - 4, this.y + 8, 4, 6);
-            ctx.fillRect(this.x + this.width, this.y + 14, 4, 6);
+            let color = seasons[currentSeason].cactusColor || "#1e8449";
+            if (this.clusterType === 0) {
+                this.drawSingleCactus(this.x, this.y, this.height, color);
+            } else if (this.clusterType === 1) {
+                this.drawSingleCactus(this.x, this.y, this.height, color);
+                this.drawSingleCactus(this.x + 22, this.y + 10, this.height - 10, color);
+            } else {
+                this.drawSingleCactus(this.x, this.y, this.height, color);
+                this.drawSingleCactus(this.x + 20, this.y + 16, this.height - 16, color);
+                this.drawSingleCactus(this.x + 38, this.y + 4, this.height - 4, color);
+            }
         }
         update() {
             this.x -= gameSpeed;
@@ -370,100 +405,13 @@ window.onload = function() {
         currentSeason = Math.floor(currentScore / 50) % seasons.length;
         let season = seasons[currentSeason];
 
+        // Vẽ nền trời từng mùa
         ctx.fillStyle = season.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        clouds.forEach(cloud => {
-            cloud.x -= cloud.speed;
-            if (cloud.x < -60) cloud.x = canvas.width + 50;
-            ctx.fillRect(cloud.x, cloud.y, cloud.width, 10);
-            ctx.fillRect(cloud.x + 8, cloud.y - 6, cloud.width - 16, 6);
-        });
-
-        ctx.fillStyle = season.ground;
-        ctx.fillRect(0, 200, canvas.width, 50);
-        ctx.fillStyle = season.line;
-        ctx.fillRect(0, 200, canvas.width, 4);
-
-        if (!isGameOver) {
-            dino.update();
-            score += 0.15;
-            gameSpeed = 5 + (score / 60);
-
-            obstacleTimer++;
-            if (obstacleTimer > Math.max(35, 80 - (gameSpeed * 2.5)) + Math.random() * 30) {
-                if (score > 40 && Math.random() > 0.45) {
-                    obstacles.push(new LowBird());
-                } else {
-                    obstacles.push(new Cactus());
-                }
-                obstacleTimer = 0;
-            }
-        }
-
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            obstacles[i].update();
-            obstacles[i].draw();
-
-            if (
-                dino.x + 2 < obstacles[i].x + obstacles[i].width - 2 &&
-                dino.x + dino.width - 2 > obstacles[i].x + 2 &&
-                dino.y + 2 < obstacles[i].y + obstacles[i].height &&
-                dino.y + dino.height > obstacles[i].y
-            ) {
-                if (!isGameOver) {
-                    playSound('gameover');
-                }
-                isGameOver = true;
-                if (score > highScore) highScore = Math.floor(score);
-            }
-
-            if (obstacles[i].x < -40) {
-                obstacles.splice(i, 1);
-            }
-        }
-
-        dino.draw();
-
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 15px 'Courier New'";
-        ctx.fillText("DIEM: " + currentScore, 580, 30);
-        ctx.fillText("KY LUC: " + highScore, 580, 52);
-        ctx.fillText(season.name, 20, 30);
-
-        if (isGameOver) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = "#e74c3c";
-            ctx.font = "bold 24px 'Courier New'";
-            ctx.fillText("GAME OVER - VAP NGA ROI!", 210, 100);
-            
-            ctx.fillStyle = "#fff";
-            ctx.font = "15px 'Courier New'";
-            ctx.fillText("Bam [SPACEBAR] hoac nut [NHAY] de choi lai", 205, 145);
-        }
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    gameLoop();
-};
-</script>
-
-</body>
-</html>
-"""
-
-components.html(game_html, height=380)
-
-st.sidebar.title("4 SEASONS GAME")
-st.sidebar.markdown("""
-- **Nhạc nền**: TheFatRat - Unity (Tự động phát khi khởi chạy).
-- **Nút điều khiển**: Phím Spacebar / Mũi tên lên để Nhảy | Phím Mũi tên xuống để Cúi / Thu nhỏ lùn xuống.
-- **Mùa Xuân (SPRING)**: Khung cảnh xanh tươi.
-- **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
-- **Mùa Thu (AUTUMN)**: Bầu trời cam đỏ ấm áp.
-- **Mùa Đông (WINTER)**: Bầu trời đêm lạnh giá.
-""")
+        // HIỆU ỨNG RIÊNG CHO TỪNG MÙA
+        if (currentSeason === 0) {
+            // MÙA XUÂN: Hoa nở trên mặt đất & chim nhỏ bay lượn
+            springFlowers.forEach(f => {
+                f.x -= gameSpeed * 0.5;
+                if (f.x < 0) f.x = canvas.width;
