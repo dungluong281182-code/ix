@@ -61,14 +61,14 @@ game_html = """
 </head>
 <body>
 
-<!-- Nhạc nền TheFatRat - Unity -->
-<audio id="bgMusic" loop src="https://files.freemusicarchive.org/storage-freemusicarchive-org/music/no_curator/Toby_Fox/Maniacs_In_The_Mailbox/Toby_Fox_-_01_-_Maniacs_In_The_Mailbox.mp3" preload="auto"></audio>
+<!-- Nhạc nền chuẩn TheFatRat - Unity -->
+<audio id="bgMusic" loop src="https://archive.org/download/gdps-2.2-song-621134/621134.mp3" preload="auto"></audio>
 
 <canvas id="gameCanvas" width="800" height="250"></canvas>
 
 <div class="btn-container">
     <button class="game-btn" id="jumpBtn">NHẢY (SPACE)</button>
-    <button class="game-btn duck-btn" id="duckBtn">CÚI (DUCK)</button>
+    <button class="game-btn duck-btn" id="duckBtn">CÚI (MŨI TÊN XUỐNG)</button>
 </div>
 
 <script>
@@ -78,18 +78,18 @@ window.onload = function() {
     const bgMusic = document.getElementById("bgMusic");
 
     let audioCtx = null;
-    let isMusicPlaying = false;
+    let isMusicStarted = false;
 
-    function startMusic() {
-        if (!isMusicPlaying) {
+    function ensureMusic() {
+        if (!isMusicStarted) {
             bgMusic.play().then(() => {
-                isMusicPlaying = true;
-            }).catch(e => console.log("Cần tương tác để phát nhạc"));
+                isMusicStarted = true;
+            }).catch(() => {});
         }
     }
 
     function initAudio() {
-        startMusic();
+        ensureMusic();
         if (!audioCtx) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (AudioContext) {
@@ -114,7 +114,7 @@ window.onload = function() {
                 osc.type = 'square';
                 osc.frequency.setValueAtTime(150, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(400, audioCtx.currentTime + 0.1);
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.1);
@@ -122,7 +122,7 @@ window.onload = function() {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(300, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.08);
-                gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.08);
@@ -130,7 +130,7 @@ window.onload = function() {
                 osc.type = 'sawtooth';
                 osc.frequency.setValueAtTime(200, audioCtx.currentTime);
                 osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.4);
-                gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
                 osc.start();
                 osc.stop(audioCtx.currentTime + 0.4);
@@ -161,13 +161,14 @@ window.onload = function() {
         });
     }
 
+    // Khủng Long T-Rex Pixel (khi cúi chiều cao nén lại cực ngắn như lò xò)
     let dino = {
         x: 50,
-        y: 165,
-        width: 32,
+        y: 164,
+        width: 30,
         height: 36,
         normalHeight: 36,
-        duckHeight: 20,
+        duckHeight: 18, // Chiều cao nén lại ngắn một nửa khi cúi xuống
         vy: 0,
         gravity: 0.75,
         jumpPower: -13.5,
@@ -177,11 +178,13 @@ window.onload = function() {
         draw() {
             ctx.fillStyle = "#2ecc71";
             if (this.isDucking && !this.isJumping) {
-                ctx.fillRect(this.x, this.y + 16, 42, 20);
-                ctx.fillRect(this.x + 26, this.y + 8, 16, 12);
+                // T-Rex cúi xuống: Chiều cao bị nén cực ngắn sát mặt đất
+                ctx.fillRect(this.x, 200 - this.duckHeight, 38, this.duckHeight);
+                ctx.fillRect(this.x + 24, 200 - this.duckHeight - 4, 14, 8); // Đầu cúi thấp
                 ctx.fillStyle = "#fff";
-                ctx.fillRect(this.x + 36, this.y + 10, 3, 3);
+                ctx.fillRect(this.x + 32, 200 - this.duckHeight - 2, 3, 3); // Mắt
             } else {
+                // T-Rex đứng thẳng bình thường
                 ctx.fillRect(this.x + 6, this.y + 12, 18, 16);
                 ctx.fillRect(this.x + 14, this.y, 16, 14);
                 ctx.fillStyle = "#fff";
@@ -220,219 +223,4 @@ window.onload = function() {
                 }
                 this.isDucking = active;
                 if (active) {
-                    this.height = this.duckHeight;
-                    this.y = 165 + (this.normalHeight - this.duckHeight);
-                } else {
-                    this.height = this.normalHeight;
-                    this.y = 165;
-                }
-            }
-        },
-        update() {
-            this.vy += this.gravity;
-            this.y += this.vy;
-            let groundLevel = this.isDucking ? 165 + (this.normalHeight - this.duckHeight) : 165;
-            if (this.y > groundLevel) {
-                this.y = groundLevel;
-                this.vy = 0;
-                this.isJumping = false;
-            }
-        }
-    };
-
-    let obstacles = [];
-
-    class Cactus {
-        constructor() {
-            this.width = 22;
-            this.height = 36;
-            this.x = canvas.width;
-            this.y = 200 - this.height;
-            this.type = 'cactus';
-        }
-        draw() {
-            ctx.fillStyle = "#1e8449";
-            ctx.fillRect(this.x, this.y, this.width, this.height);
-            ctx.fillStyle = "#2ecc71";
-            ctx.fillRect(this.x - 4, this.y + 8, 4, 6);
-            ctx.fillRect(this.x + this.width, this.y + 14, 4, 6);
-        }
-        update() {
-            this.x -= gameSpeed;
-        }
-    }
-
-    class LowBird {
-        constructor() {
-            this.width = 34;
-            this.height = 20;
-            this.x = canvas.width;
-            this.y = 158;
-            this.type = 'bird';
-            this.animFrame = 0;
-        }
-        draw() {
-            ctx.fillStyle = "#e74c3c";
-            ctx.fillRect(this.x, this.y + 6, 34, 10);
-            ctx.fillRect(this.x + 8, this.y, 10, 8);
-            
-            ctx.fillStyle = "#c0392b";
-            if (Math.floor(this.animFrame / 8) % 2 === 0) {
-                ctx.fillRect(this.x + 12, this.y - 6, 8, 8);
-            } else {
-                ctx.fillRect(this.x + 12, this.y + 14, 8, 8);
-            }
-            this.animFrame++;
-        }
-        update() {
-            this.x -= gameSpeed;
-        }
-    }
-
-    function resetGame() {
-        score = 0;
-        gameSpeed = 5;
-        obstacles = [];
-        isGameOver = false;
-        currentSeason = 0;
-        dino.y = 165;
-        dino.height = dino.normalHeight;
-        dino.isDucking = false;
-        startMusic();
-    }
-
-    window.addEventListener("keydown", e => {
-        initAudio();
-        if (e.code === "Space" || e.code === "ArrowUp") {
-            if (isGameOver) resetGame();
-            else dino.jump();
-            e.preventDefault();
-        }
-        if (e.code === "ArrowDown") {
-            if (!isGameOver) dino.duck(true);
-            e.preventDefault();
-        }
-    });
-
-    window.addEventListener("keyup", e => {
-        if (e.code === "ArrowDown") {
-            if (!isGameOver) dino.duck(false);
-        }
-    });
-
-    document.getElementById("jumpBtn").addEventListener("click", () => {
-        initAudio();
-        if (isGameOver) resetGame();
-        else dino.jump();
-    });
-
-    const duckBtn = document.getElementById("duckBtn");
-    duckBtn.addEventListener("mousedown", () => { initAudio(); if(!isGameOver) dino.duck(true); });
-    duckBtn.addEventListener("mouseup", () => { if(!isGameOver) dino.duck(false); });
-    duckBtn.addEventListener("touchstart", (e) => { initAudio(); if(!isGameOver) dino.duck(true); e.preventDefault(); });
-    duckBtn.addEventListener("touchend", (e) => { if(!isGameOver) dino.duck(false); e.preventDefault(); });
-
-    let obstacleTimer = 0;
-
-    function gameLoop() {
-        let currentScore = Math.floor(score);
-        currentSeason = Math.floor(currentScore / 50) % seasons.length;
-        let season = seasons[currentSeason];
-
-        ctx.fillStyle = season.bg;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
-        clouds.forEach(cloud => {
-            cloud.x -= cloud.speed;
-            if (cloud.x < -60) cloud.x = canvas.width + 50;
-            ctx.fillRect(cloud.x, cloud.y, cloud.width, 10);
-            ctx.fillRect(cloud.x + 8, cloud.y - 6, cloud.width - 16, 6);
-        });
-
-        ctx.fillStyle = season.ground;
-        ctx.fillRect(0, 200, canvas.width, 50);
-        ctx.fillStyle = season.line;
-        ctx.fillRect(0, 200, canvas.width, 4);
-
-        if (!isGameOver) {
-            dino.update();
-            score += 0.15;
-            gameSpeed = 5 + (score / 60);
-
-            obstacleTimer++;
-            if (obstacleTimer > Math.max(35, 80 - (gameSpeed * 2.5)) + Math.random() * 30) {
-                if (score > 40 && Math.random() > 0.45) {
-                    obstacles.push(new LowBird());
-                } else {
-                    obstacles.push(new Cactus());
-                }
-                obstacleTimer = 0;
-            }
-        }
-
-        for (let i = obstacles.length - 1; i >= 0; i--) {
-            obstacles[i].update();
-            obstacles[i].draw();
-
-            if (
-                dino.x + 4 < obstacles[i].x + obstacles[i].width - 4 &&
-                dino.x + dino.width - 4 > obstacles[i].x + 4 &&
-                dino.y + 4 < obstacles[i].y + obstacles[i].height &&
-                dino.y + dino.height > obstacles[i].y
-            ) {
-                if (!isGameOver) {
-                    playSound('gameover');
-                }
-                isGameOver = true;
-                if (score > highScore) highScore = Math.floor(score);
-            }
-
-            if (obstacles[i].x < -40) {
-                obstacles.splice(i, 1);
-            }
-        }
-
-        dino.draw();
-
-        ctx.fillStyle = "#fff";
-        ctx.font = "bold 15px 'Courier New'";
-        ctx.fillText("ĐIỂM: " + currentScore, 580, 30);
-        ctx.fillText("KỶ LỤC: " + highScore, 580, 52);
-        ctx.fillText(season.name, 20, 30);
-
-        if (isGameOver) {
-            ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            ctx.fillStyle = "#e74c3c";
-            ctx.font = "bold 24px 'Courier New'";
-            ctx.fillText("GAME OVER - VẤP NGÃ RỒI!", 210, 100);
-            
-            ctx.fillStyle = "#fff";
-            ctx.font = "15px 'Courier New'";
-            ctx.fillText("Bấm [SPACEBAR] hoặc nút [NHẢY] để chơi lại", 205, 145);
-        }
-
-        requestAnimationFrame(gameLoop);
-    }
-
-    gameLoop();
-};
-</script>
-
-</body>
-</html>
-"""
-
-components.html(game_html, height=380)
-
-st.sidebar.title("4 SEASONS GAME")
-st.sidebar.markdown("""
-- **Nhạc nền**: *TheFatRat - Unity* (Tự động phát khi bấm bắt đầu chơi).
-- **Nút điều khiển**: Phím **Spacebar** / **Mũi tên lên** để Nhảy | Phím **Mũi tên xuống** để Cúi.
-- **Mùa Xuân (SPRING)**: Hoa lá xanh tươi mộc mạc.
-- **Mùa Hạ (SUMMER)**: Bầu trời nắng vàng rực rỡ.
-- **Mùa Thu (AUTUMN)**: Bầu trời cam đỏ ấm áp.
-- **Mùa Đông (WINTER)**: Bầu trời đêm lạnh giá.
-""")
+                    this.height =
