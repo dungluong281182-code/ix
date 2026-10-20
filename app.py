@@ -144,10 +144,10 @@ window.onload = function() {
     let currentSeason = 0;
 
     const seasons = [
-        { name: "MÙA XUÂN (SPRING)", bg: "#70c5ce", ground: "#27ae60", line: "#1e8449" },
-        { name: "MÙA HẠ (SUMMER)", bg: "#f39c12", ground: "#d35400", line: "#ba4a00" },
-        { name: "MÙA THU (AUTUMN)", bg: "#d35400", ground: "#b9770e", line: "#7e5109" },
-        { name: "MÙA ĐÔNG (WINTER)", bg: "#2c3e50", ground: "#bdc3c7", line: "#7f8c8d" }
+        { name: "MUA XUAN (SPRING)", bg: "#70c5ce", ground: "#27ae60", line: "#1e8449" },
+        { name: "MUA HA (SUMMER)", bg: "#f39c12", ground: "#d35400", line: "#ba4a00" },
+        { name: "MUA THU (AUTUMN)", bg: "#d35400", ground: "#b9770e", line: "#7e5109" },
+        { name: "MUA DONG (WINTER)", bg: "#2c3e50", ground: "#bdc3c7", line: "#7f8c8d" }
     ];
 
     let clouds = [];
@@ -163,10 +163,10 @@ window.onload = function() {
     let dino = {
         x: 50,
         y: 164,
-        width: 30,
+        width: 32,
         height: 36,
         normalHeight: 36,
-        duckHeight: 18,
+        duckHeight: 16,
         vy: 0,
         gravity: 0.75,
         jumpPower: -13.5,
@@ -176,28 +176,31 @@ window.onload = function() {
         draw() {
             ctx.fillStyle = "#2ecc71";
             if (this.isDucking && !this.isJumping) {
-                ctx.fillRect(this.x, 200 - this.duckHeight, 38, this.duckHeight);
-                ctx.fillRect(this.x + 24, 200 - this.duckHeight - 4, 14, 8);
+                // T-Rex khi cúi: thân nén bẹt thấp xuống sát mặt đất như lò xò
+                ctx.fillRect(this.x, 200 - 16, 42, 16);
+                ctx.fillRect(this.x + 30, 200 - 22, 14, 10);
                 ctx.fillStyle = "#fff";
-                ctx.fillRect(this.x + 32, 200 - this.duckHeight - 2, 3, 3);
+                ctx.fillRect(this.x + 38, 200 - 20, 3, 3);
             } else {
-                ctx.fillRect(this.x + 6, this.y + 12, 18, 16);
-                ctx.fillRect(this.x + 14, this.y, 16, 14);
+                // Hình dáng chuẩn T-Rex Pixel Art (có đuôi, thân, đầu, tay, chân)
+                ctx.fillRect(this.x, this.y + 10, 8, 6); // Đuôi
+                ctx.fillRect(this.x + 6, this.y + 8, 16, 16); // Thân
+                ctx.fillRect(this.x + 14, this.y, 16, 12); // Đầu & mõm
                 ctx.fillStyle = "#fff";
-                ctx.fillRect(this.x + 24, this.y + 3, 3, 3);
+                ctx.fillRect(this.x + 24, this.y + 3, 3, 3); // Mắt
                 ctx.fillStyle = "#2ecc71";
-                ctx.fillRect(this.x + 20, this.y + 14, 4, 3);
+                ctx.fillRect(this.x + 20, this.y + 12, 4, 3); // Tay
                 
                 if (this.isJumping) {
-                    ctx.fillRect(this.x + 8, this.y + 28, 4, 8);
-                    ctx.fillRect(this.x + 16, this.y + 28, 4, 8);
+                    ctx.fillRect(this.x + 8, this.y + 24, 4, 10);
+                    ctx.fillRect(this.x + 16, this.y + 24, 4, 10);
                 } else {
                     if (Math.floor(this.animFrame / 8) % 2 === 0) {
-                        ctx.fillRect(this.x + 8, this.y + 28, 4, 8);
-                        ctx.fillRect(this.x + 16, this.y + 28, 3, 6);
+                        ctx.fillRect(this.x + 8, this.y + 24, 4, 12);
+                        ctx.fillRect(this.x + 16, this.y + 24, 3, 8);
                     } else {
-                        ctx.fillRect(this.x + 8, this.y + 28, 3, 6);
-                        ctx.fillRect(this.x + 16, this.y + 28, 4, 8);
+                        ctx.fillRect(this.x + 8, this.y + 24, 3, 8);
+                        ctx.fillRect(this.x + 16, this.y + 24, 4, 12);
                     }
                 }
             }
@@ -397,8 +400,8 @@ window.onload = function() {
 
         ctx.fillStyle = "#fff";
         ctx.font = "bold 15px 'Courier New'";
-        ctx.fillText("ĐIỂM: " + currentScore, 580, 30);
-        ctx.fillText("KỶ LỤC: " + highScore, 580, 52);
+        ctx.fillText("DIEM: " + currentScore, 580, 30);
+        ctx.fillText("KY LUC: " + highScore, 580, 52);
         ctx.fillText(season.name, 20, 30);
 
         if (isGameOver) {
@@ -407,11 +410,11 @@ window.onload = function() {
             
             ctx.fillStyle = "#e74c3c";
             ctx.font = "bold 24px 'Courier New'";
-            ctx.fillText("GAME OVER - VẤP NGÃ RỒI!", 210, 100);
+            ctx.fillText("GAME OVER - VAP NGA ROI!", 210, 100);
             
             ctx.fillStyle = "#fff";
             ctx.font = "15px 'Courier New'";
-            ctx.fillText("Bấm [SPACEBAR] hoặc nút [NHẢY] để chơi lại", 205, 145);
+            ctx.fillText("Bam [SPACEBAR] hoac nut [NHAY] de choi lai", 205, 145);
         }
 
         requestAnimationFrame(gameLoop);
@@ -429,8 +432,8 @@ components.html(game_html, height=380)
 
 st.sidebar.title("4 SEASONS GAME")
 st.sidebar.markdown("""
-- **Nhạc nền**: *TheFatRat - Unity* (Tự động phát khi khởi chạy).
-- **Nút điều khiển**: Phím **Spacebar** / **Mũi tên lên** để Nhảy | Phím **Mũi tên xuống** để Cúi / Nén chiều cao.
+- **Nhạc nền**: TheFatRat - Unity (Tự động phát khi khởi chạy).
+- **Nút điều khiển**: Phím Spacebar / Mũi tên lên để Nhảy | Phím Mũi tên xuống để Cúi / Nén chiều cao.
 - **Mùa Xuân (SPRING)**: Khung cảnh xanh tươi.
 - **Mùa Hạ (SUMMER)**: Nắng vàng rực rỡ.
 - **Mùa Thu (AUTUMN)**: Bầu trời cam đỏ ấm áp.
