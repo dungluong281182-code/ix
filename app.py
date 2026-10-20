@@ -39,7 +39,6 @@ window.onload = function() {
     let springFlowers = [], fallingLeaves = [], snowFlakes = [], sunAngle = 0, clouds = [];
     for(let i=0; i<8; i++) springFlowers.push({ x: Math.random()*canvas.width, y: 192+Math.random()*6, color: Math.random()>0.5?"#e74c3c":"#ffffff" });
     
-    // Khởi tạo các chiếc lá mùa thu chi tiết giống hình mẫu
     for(let i=0; i<10; i++) {
         fallingLeaves.push({
             x: Math.random() * canvas.width,
@@ -77,17 +76,14 @@ window.onload = function() {
         ctx.fillRect(x + 6, y, 8, 2);
     }
 
-    // Vẽ chiếc lá mùa thu nghệ thuật chuẩn pixel art theo mẫu
     function drawDetailedLeaf(x, y, type) {
         if (type === 0) {
-            // Lá phong nhiều thùy
             ctx.fillStyle = "#e67e22";
             ctx.fillRect(x+4, y, 4, 12);
             ctx.fillRect(x, y+4, 12, 4);
             ctx.fillStyle = "#d35400";
             ctx.fillRect(x+2, y+10, 2, 4);
         } else if (type === 1) {
-            // Lá dài gân giữa
             ctx.fillStyle = "#f39c12";
             ctx.fillRect(x+2, y, 6, 14);
             ctx.fillStyle = "#c0392b";
@@ -96,7 +92,6 @@ window.onload = function() {
             ctx.fillRect(x, y+4, 10, 2);
             ctx.fillRect(x, y+8, 10, 2);
         } else {
-            // Lá bầu dục răng cưa
             ctx.fillStyle = "#d35400";
             ctx.fillRect(x+2, y, 6, 12);
             ctx.fillStyle = "#f1c40f";
@@ -242,7 +237,6 @@ window.onload = function() {
             ctx.fillStyle = "#f1c40f";
             ctx.beginPath(); ctx.arc(700, 50, 36, 0, Math.PI*2); ctx.fill();
         } else if (currentSeason === 2) {
-            // Hiệu ứng lá thu rơi chuẩn mẫu pixel art
             fallingLeaves.forEach(leaf => {
                 leaf.x += leaf.speedX;
                 leaf.y += leaf.speedY;
@@ -308,3 +302,26 @@ window.onload = function() {
         if (isGameOver) {
             ctx.fillStyle = "rgba(0,0,0,0.8)";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#e74c3c";
+            ctx.font = "bold 24px Courier";
+            ctx.fillText("GAME OVER - VAP NGA ROI!", 210, 100);
+            ctx.fillStyle = "#fff";
+            ctx.font = "15px Courier";
+            ctx.fillText("Bam [SPACEBAR] hoac nut [NHAY] de choi lai", 205, 145);
+        }
+        requestAnimationFrame(gameLoop);
+    }
+    gameLoop();
+};
+</script>
+</body>
+</html>
+"""
+
+components.html(game_html, height=270)
+
+st.sidebar.title("4 SEASONS GAME")
+st.sidebar.markdown("""
+- **Nhạc nền**: TheFatRat - Unity (Tự động phát)[cite: 10].
+- **Điều khiển**: Phím [Spacebar] / [Mũi tên lên] để Nhảy | Phím [Mũi tên xuống] để Cúi[cite: 10].
+""")
