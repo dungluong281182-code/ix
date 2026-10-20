@@ -160,12 +160,13 @@ window.onload = function() {
         });
     }
 
+    // T-Rex tái hiện 100% chuẩn hình mẫu
     let dino = {
         x: 50,
-        y: 160,
-        width: 33,
-        height: 40,
-        normalHeight: 40,
+        y: 156,
+        width: 32,
+        height: 44,
+        normalHeight: 44,
         duckHeight: 22,
         vy: 0,
         gravity: 0.75,
@@ -174,56 +175,59 @@ window.onload = function() {
         isDucking: false,
         animFrame: 0,
         draw() {
-            const p = 3; 
+            const p = 2.5; // Kích thước 1 pixel unit
             const px = this.x;
 
             ctx.save();
             if (this.isDucking && !this.isJumping) {
-                // Co giãn chiều cao theo tỷ lệ (scale dọc xuống còn 55%), giữ nguyên vẹn hình dáng T-Rex
+                // Co bẹt chiều cao lùn tịt xuống sát mặt đất y = 200
                 ctx.translate(px, 200);
-                ctx.scale(1, 0.55);
-                ctx.translate(0, -40);
+                ctx.scale(1.1, 0.5);
+                ctx.translate(0, -17.5 * p);
             } else {
                 ctx.translate(px, this.y);
             }
 
-            ctx.fillStyle = "#2ecc71";
+            ctx.fillStyle = "#2ecc71"; // Màu xanh lá pixel
 
+            // Ma trận vẽ T-Rex chuẩn từng ô Pixel:
             // 1. Đầu & Mõm vuông
-            ctx.fillRect(3*p, 0, 6*p, 3*p);
-            ctx.fillRect(2*p, 1*p, 1*p, 2*p);
+            ctx.fillRect(7*p, 0, 7*p, 2*p);
+            ctx.fillRect(7*p, 2*p, 8*p, 2*p);
+            ctx.fillRect(7*p, 4*p, 6*p, 1*p);
             
             // Mắt trắng
             ctx.fillStyle = "#ffffff";
-            ctx.fillRect(4*p, 1*p, 1*p, 1*p);
+            ctx.fillRect(8*p, 1*p, 1.5*p, 1.5*p);
 
             ctx.fillStyle = "#2ecc71";
-            // 2. Thân & Cổ
-            ctx.fillRect(4*p, 3*p, 4*p, 5*p);
+            // 2. Cổ & Thân
+            ctx.fillRect(7*p, 5*p, 4*p, 4*p);
+            ctx.fillRect(5*p, 7*p, 5*p, 5*p);
+            ctx.fillRect(3*p, 9*p, 6*p, 4*p);
 
-            // 3. Tay nhỏ xinh đặc trưng T-Rex
-            ctx.fillStyle = "#1e8449";
-            ctx.fillRect(2*p, 4*p, 2*p, 1*p);
+            // 3. Đôi TAY NHỎ nhô ra phía trước
+            ctx.fillRect(11*p, 6*p, 3*p, 1*p);
+            ctx.fillRect(11*p, 7*p, 1*p, 1.5*p);
 
-            ctx.fillStyle = "#2ecc71";
-            // 4. Đuôi to vểnh phía sau
-            ctx.fillRect(0, 3*p, 3*p, 2*p);
-            ctx.fillRect(-1*p, 2*p, 1*p, 2*p);
-            ctx.fillRect(1*p, 5*p, 3*p, 2*p);
-            ctx.fillRect(2*p, 7*p, 2*p, 2*p);
+            // 4. Đuôi vểnh dài phía sau
+            ctx.fillRect(0, 4*p, 1*p, 4*p);
+            ctx.fillRect(1*p, 6*p, 1*p, 4*p);
+            ctx.fillRect(2*p, 8*p, 1*p, 3*p);
 
-            // 5. Chân chạy
-            ctx.fillStyle = "#1e8449";
+            // 5. Chân đứng vừa vặn chạm đất y = 200
             if (this.isJumping) {
-                ctx.fillRect(3*p, 8*p, 2*p, 2*p);
-                ctx.fillRect(6*p, 8*p, 2*p, 2*p);
+                ctx.fillRect(4*p, 13*p, 2*p, 2*p);
+                ctx.fillRect(7*p, 13*p, 2*p, 2*p);
             } else {
                 if (Math.floor(this.animFrame / 6) % 2 === 0) {
-                    ctx.fillRect(3*p, 8*p, 2*p, 3*p);
-                    ctx.fillRect(6*p, 8*p, 2*p, 1*p);
+                    ctx.fillRect(4*p, 13*p, 2*p, 4.5*p); // Chân trái duỗi chạm đất
+                    ctx.fillRect(7*p, 13*p, 2*p, 2*p);   // Chân phải co lên
+                    ctx.fillRect(8*p, 14*p, 2*p, 1*p);
                 } else {
-                    ctx.fillRect(3*p, 8*p, 2*p, 1*p);
-                    ctx.fillRect(6*p, 8*p, 2*p, 3*p);
+                    ctx.fillRect(4*p, 13*p, 2*p, 2*p);   // Chân trái co
+                    ctx.fillRect(3*p, 14*p, 2*p, 1*p);
+                    ctx.fillRect(7*p, 13*p, 2*p, 4.5*p); // Chân phải duỗi chạm đất
                 }
             }
 
@@ -250,14 +254,14 @@ window.onload = function() {
                     this.y = 200 - this.duckHeight;
                 } else {
                     this.height = this.normalHeight;
-                    this.y = 160;
+                    this.y = 156;
                 }
             }
         },
         update() {
             this.vy += this.gravity;
             this.y += this.vy;
-            let groundLevel = this.isDucking ? (200 - this.duckHeight) : 160;
+            let groundLevel = this.isDucking ? (200 - this.duckHeight) : 156;
             if (this.y > groundLevel) {
                 this.y = groundLevel;
                 this.vy = 0;
@@ -321,7 +325,7 @@ window.onload = function() {
         obstacles = [];
         isGameOver = false;
         currentSeason = 0;
-        dino.y = 160;
+        dino.y = 156;
         dino.height = dino.normalHeight;
         dino.isDucking = false;
         ensureMusic();
