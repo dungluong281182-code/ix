@@ -150,7 +150,6 @@ window.onload = function() {
         { name: "MUA DONG (WINTER)", bg: "#1a252f", ground: "#7f8c8d", line: "#34495e", cactusColor: "#16a085" }
     ];
 
-    // Các phần tử thời tiết / môi trường riêng biệt cho từng mùa
     let springFlowers = [];
     for(let i=0; i<8; i++) {
         springFlowers.push({ x: Math.random() * canvas.width, y: 192 + Math.random() * 6, color: Math.random() > 0.5 ? "#e74c3c" : "#f1c40f" });
@@ -178,6 +177,16 @@ window.onload = function() {
     }
 
     let sunAngle = 0;
+
+    let clouds = [];
+    for(let i = 0; i < 4; i++) {
+        clouds.push({
+            x: Math.random() * canvas.width,
+            y: 20 + Math.random() * 45,
+            speed: 0.4 + Math.random() * 0.6,
+            width: 45 + Math.random() * 25
+        });
+    }
 
     let dino = {
         x: 50,
@@ -405,13 +414,27 @@ window.onload = function() {
         currentSeason = Math.floor(currentScore / 50) % seasons.length;
         let season = seasons[currentSeason];
 
-        // Vẽ nền trời từng mùa
         ctx.fillStyle = season.bg;
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // HIỆU ỨNG RIÊNG CHO TỪNG MÙA
         if (currentSeason === 0) {
-            // MÙA XUÂN: Hoa nở trên mặt đất & chim nhỏ bay lượn
             springFlowers.forEach(f => {
                 f.x -= gameSpeed * 0.5;
                 if (f.x < 0) f.x = canvas.width;
+                ctx.fillStyle = f.color;
+                ctx.fillRect(f.x, f.y, 4, 4);
+                ctx.fillRect(f.x - 2, f.y + 2, 8, 2);
+            });
+        } else if (currentSeason === 1) {
+            sunAngle += 0.01;
+            ctx.fillStyle = "#f1c40f";
+            ctx.beginPath();
+            ctx.arc(700, 50, 36, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#f39c12";
+            ctx.lineWidth = 3;
+            for(let i=0; i<8; i++) {
+                let angle = sunAngle + (i * Math.PI / 4);
+                let x1 = 700 + Math.cos(angle) * 42;
+                let y1 = 50 + Math.sin(angle) * 42;
+                let x2 = 70
